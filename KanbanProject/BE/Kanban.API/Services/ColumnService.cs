@@ -62,7 +62,7 @@ public class ColumnService : IColumnService
 
         if (await _db.Cards.AnyAsync(c => c.ColumnId == columnId))
         {
-            throw new InvalidOperationException("Không thể xóa cột còn card. Hãy di chuyển hoặc xóa card trước.");
+            throw new InvalidOperationException("Không thể xóa cột còn thẻ. Hãy di chuyển hoặc xóa thẻ trước.");
         }
 
         _db.BoardColumns.Remove(column);
@@ -87,7 +87,7 @@ public class ColumnService : IColumnService
         var boardId = columns.First().BoardId;
         if (columns.Any(c => c.BoardId != boardId))
         {
-            throw new InvalidOperationException("Chỉ được sắp xếp cột trong cùng board.");
+            throw new InvalidOperationException("Chỉ được sắp xếp cột trong cùng bảng.");
         }
 
         await BoardAccess.EnsureCanManageBoardAsync(_db, boardId, userId);

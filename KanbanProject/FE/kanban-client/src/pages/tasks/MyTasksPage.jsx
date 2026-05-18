@@ -7,6 +7,12 @@ import StatCard from '../../components/common/StatCard.jsx'
 import { boardService } from '../../services/boardService'
 import { getErrorMessage } from '../../services/api'
 
+const priorityLabels = {
+  Low: 'Thấp',
+  Medium: 'Trung bình',
+  High: 'Cao',
+}
+
 function MyTasksPage() {
   const [boards, setBoard] = useState([])
   const [loading, setLoading] = useState(true)
@@ -17,7 +23,7 @@ function MyTasksPage() {
     const load = async () => {
       try {
         setLoading(true)
-        const summaries = await boardService.getBoard()
+        const summaries = await boardService.getBoards()
         const details = await Promise.all(summaries.map((board) => boardService.getBoard(board.id)))
         setBoard(details)
       } catch (err) {
@@ -53,28 +59,28 @@ function MyTasksPage() {
   const overdue = tasks.filter((task) => task.dueDate && new Date(task.dueDate) < new Date() && !task.isArchived).length
   const highPriority = tasks.filter((task) => task.priority === 'High').length
 
-  if (loading) return <Loading label="Loading tasks" />
+  if (loading) return <Loading label="Đang tải việc" />
 
   return (
     <section className="page stack">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">Focus</span>
-          <h2>Tasks cua toi</h2>
-          <p className="muted">Tat ca the duoc tong hop tu cac board ban co quyen truy cap.</p>
+          <span className="eyebrow">Tập trung</span>
+          <h2>Việc của tôi</h2>
+          <p className="muted">Tất cả thẻ được tổng hợp từ các bảng bạn có quyền truy cập.</p>
         </div>
         <div className="search-field">
           <Search size={17} />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tim task" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm việc" />
         </div>
       </div>
 
       <Notice type="error">{error}</Notice>
 
       <div className="stats-grid">
-        <StatCard icon={<CheckSquare size={20} />} label="Task" value={tasks.length} hint="the hien thi" tone="blue" />
-        <StatCard icon={<AlertTriangle size={20} />} label="Overdue" value={overdue} hint="past due date" tone="red" />
-        <StatCard icon={<Clock3 size={20} />} label="High priority" value={highPriority} hint="can chu y" tone="amber" />
+        <StatCard icon={<CheckSquare size={20} />} label="Việc" value={tasks.length} hint="thẻ hiển thị" tone="blue" />
+        <StatCard icon={<AlertTriangle size={20} />} label="Quá hạn" value={overdue} hint="đã qua hạn" tone="red" />
+        <StatCard icon={<Clock3 size={20} />} label="Ưu tiên cao" value={highPriority} hint="cần chú ý" tone="amber" />
       </div>
 
       <div className="work-list">
@@ -84,10 +90,10 @@ function MyTasksPage() {
               <strong>{task.title}</strong>
               <span>{task.boardName} / {task.columnName}</span>
             </div>
-            <small>{task.priority || 'Chua co uu tien'}{task.dueDate ? ` - Han ${new Date(task.dueDate).toLocaleDateString()}` : ''}</small>
+            <small>{priorityLabels[task.priority] || 'Chưa có ưu tiên'}{task.dueDate ? ` - Hạn ${new Date(task.dueDate).toLocaleDateString()}` : ''}</small>
           </Link>
         ))}
-        {filteredTasks.length === 0 && <div className="empty-inline"><strong>Khong tim thay task</strong><span>Thu tu khoa khac.</span></div>}
+        {filteredTasks.length === 0 && <div className="empty-inline"><strong>Không tìm thấy việc</strong><span>Thử từ khóa khác.</span></div>}
       </div>
     </section>
   )

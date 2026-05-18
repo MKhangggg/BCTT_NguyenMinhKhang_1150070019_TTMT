@@ -64,8 +64,8 @@ export const formatBoardRealtimeNotification = (event) => {
 
   return {
     id: `live-${event?.action || 'BoardChanged'}-${Date.now()}`,
-    title: actionLabels[event?.action] || 'Board vừa có thay đổi',
-    message: `Board #${event?.boardId || ''} được cập nhật theo thời gian thực.`,
+    title: actionLabels[event?.action] || 'Bảng vừa có thay đổi',
+    message: `Bảng #${event?.boardId || ''} được cập nhật theo thời gian thực.`,
     type: event?.action || 'Realtime',
     isRead: false,
     isRealtime: true,

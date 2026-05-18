@@ -34,7 +34,7 @@ public class AuthService : IAuthService
 
         if (await _db.Users.AnyAsync(u => u.UserName == userName))
         {
-            throw new InvalidOperationException("Username đã được sử dụng.");
+            throw new InvalidOperationException("Tên đăng nhập đã được sử dụng.");
         }
 
         var user = new User

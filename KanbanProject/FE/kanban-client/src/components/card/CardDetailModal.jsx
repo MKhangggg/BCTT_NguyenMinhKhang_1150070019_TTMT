@@ -17,7 +17,7 @@ const priorityOptions = [
 
 const priorityLabels = Object.fromEntries(priorityOptions.map((item) => [item.value, item.label]))
 
-function CardDetailModal({ cardId, member, onClose, onSaved, onDeleted }) {
+function CardDetailModal({ cardId, member = [], onClose, onSaved, onDeleted }) {
   const [card, setCard] = useState(null)
   const [comments, setComments] = useState([])
   const [form, setForm] = useState(null)
@@ -46,7 +46,7 @@ function CardDetailModal({ cardId, member, onClose, onSaved, onDeleted }) {
         position: cardData.position,
         isArchived: cardData.isArchived,
       })
-      setLabelText(cardData.labels.map((label) => label.name).join(', '))
+      setLabelText((cardData.labels || []).map((label) => label.name).join(', '))
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {
@@ -72,7 +72,7 @@ function CardDetailModal({ cardId, member, onClose, onSaved, onDeleted }) {
       .filter(Boolean)
       .map((name, index) => ({
         name,
-        color: card.labels.find((label) => label.name === name)?.color || palette[index % palette.length],
+        color: (card.labels || []).find((label) => label.name === name)?.color || palette[index % palette.length],
       }))
 
     try {
@@ -184,7 +184,7 @@ function CardDetailModal({ cardId, member, onClose, onSaved, onDeleted }) {
   const completedChecklist = card?.checklistItems?.filter((item) => item.isCompleted).length || 0
   const checklistTotal = card?.checklistItems?.length || 0
   const checklistPercent = checklistTotal ? Math.round((completedChecklist / checklistTotal) * 100) : 0
-  const creator = member.find((member) => String(member.userId) === String(card?.createdById))
+  const creator = member.find((item) => String(item.userId) === String(card?.createdById))
   const creatorName = card?.createdByName || creator?.fullName || 'Người dùng không xác định'
   const dueBadgeText = form?.dueDate ? `Hạn ${new Date(form.dueDate).toLocaleDateString()}` : 'Chưa có hạn'
 
@@ -242,7 +242,7 @@ function CardDetailModal({ cardId, member, onClose, onSaved, onDeleted }) {
                 <section className="task-section">
                   <h3><ListChecks size={18} /> Mô tả</h3>
                   <div className="description-editor-shell">
-                    <div className="description-toolbar"><span>Markdown</span><span>@nhắc tên</span><span>/lệnh</span></div>
+                    <div className="description-toolbar"><span>Định dạng</span><span>@nhắc tên</span><span>/lệnh</span></div>
                     <textarea className="task-description" rows="6" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Thêm mô tả thẻ, tiêu chí hoàn thành hoặc bối cảnh dự án..." />
                   </div>
                 </section>
@@ -250,15 +250,15 @@ function CardDetailModal({ cardId, member, onClose, onSaved, onDeleted }) {
                 <section className="task-section attachments-empty">
                   <div className="task-section-head"><h3><FileUp size={18} /> Tệp đính kèm</h3><button className="ghost-button compact" type="button"><Paperclip size={15} /> Thêm</button></div>
                   <div className="attachment-grid">
-                    <button className="attachment-card image-preview" type="button"><span><Image size={20} /></span><div><strong>Design-preview.png</strong><small>Image preview · 1.8 MB</small></div></button>
-                    <button className="attachment-card doc-preview" type="button"><span><FileText size={20} /></span><div><strong>Tom tat task.pdf</strong><small>Tai lieu · 420 KB</small></div></button>
-                    <button className="attachment-card upload-card" type="button"><span><Plus size={20} /></span><div><strong>Them tep dinh kem</strong><small>Tai tep, lien ket hoac anh chup man hinh</small></div></button>
+                    <button className="attachment-card image-preview" type="button"><span><Image size={20} /></span><div><strong>Xem-truoc-thiet-ke.png</strong><small>Xem trước ảnh · 1.8 MB</small></div></button>
+                    <button className="attachment-card doc-preview" type="button"><span><FileText size={20} /></span><div><strong>Tóm tắt thẻ.pdf</strong><small>Tài liệu · 420 KB</small></div></button>
+                    <button className="attachment-card upload-card" type="button"><span><Plus size={20} /></span><div><strong>Thêm tệp đính kèm</strong><small>Tải tệp, liên kết hoặc ảnh chụp màn hình</small></div></button>
                   </div>
                 </section>
 
                 <section className="task-section">
                   <div className="task-section-head">
-                    <h3><CheckSquare size={18} /> Checklist ({completedChecklist}/{checklistTotal})</h3>
+                    <h3><CheckSquare size={18} /> Danh sách việc ({completedChecklist}/{checklistTotal})</h3>
                     <strong>{checklistPercent}%</strong>
                   </div>
                   <div className="checklist-progress"><span style={{ width: `${checklistPercent}%` }} /></div>
@@ -267,42 +267,42 @@ function CardDetailModal({ cardId, member, onClose, onSaved, onDeleted }) {
                       <div className="checklist-row modern-check-row" key={item.id}>
                         <label className="custom-check"><input type="checkbox" checked={item.isCompleted} onChange={(e) => updateChecklist(item, { isCompleted: e.target.checked })} /><span><CheckSquare size={13} /></span></label>
                         <input className={item.isCompleted ? 'is-done' : ''} value={item.content} onChange={(e) => updateChecklist(item, { content: e.target.value })} />
-                        <button className="icon-button danger" type="button" title="Xóa mục checklist" onClick={() => deleteChecklist(item.id)}><Trash2 size={14} /></button>
+                        <button className="icon-button danger" type="button" title="Xóa mục việc" onClick={() => deleteChecklist(item.id)}><Trash2 size={14} /></button>
                       </div>
                     ))}
-                    {card.checklistItems.length === 0 && <div className="empty-inline compact-empty"><strong>Chưa có checklist</strong><span>Chia thẻ này thành các bước nhỏ hơn.</span></div>}
+                    {card.checklistItems.length === 0 && <div className="empty-inline compact-empty"><strong>Chưa có danh sách việc</strong><span>Chia thẻ này thành các bước nhỏ hơn.</span></div>}
                   </div>
                   <form className="inline-form" onSubmit={addChecklist}>
-                    <input value={checklistText} onChange={(e) => setChecklistText(e.target.value)} placeholder="Thêm mục checklist" />
-                    <button className="icon-button" type="submit" title="Thêm mục checklist"><Plus size={16} /></button>
+                    <input value={checklistText} onChange={(e) => setChecklistText(e.target.value)} placeholder="Thêm mục việc" />
+                    <button className="icon-button" type="submit" title="Thêm mục việc"><Plus size={16} /></button>
                   </form>
                 </section>
 
                 <section className="task-section">
-                  <h3><Clock3 size={18} /> Activity</h3>
+                  <h3><Clock3 size={18} /> Hoạt động</h3>
                   <div className="activity-timeline">
                     {card.activityLogs.map((activity) => (
                       <div className="timeline-item" key={activity.id}>
                         <Avatar name={activity.userName} src={activity.avatarUrl} size="sm" />
-                        <div><strong>{activity.userName}</strong><p>{activity.description}</p><small>{activity.createdAt ? new Date(activity.createdAt).toLocaleString() : 'Recently'}</small></div>
+                        <div><strong>{activity.userName}</strong><p>{activity.description}</p><small>{activity.createdAt ? new Date(activity.createdAt).toLocaleString() : 'Gần đây'}</small></div>
                       </div>
                     ))}
-                    {card.activityLogs.length === 0 && <div className="empty-inline compact-empty"><strong>Chua co hoat dong</strong><span>Cac thay doi se hien thi tai day.</span></div>}
+                    {card.activityLogs.length === 0 && <div className="empty-inline compact-empty"><strong>Chưa có hoạt động</strong><span>Các thay đổi sẽ hiển thị tại đây.</span></div>}
                   </div>
                 </section>
               </main>
 
               <aside className="task-sidebar stack">
                 <section className="task-section task-properties">
-                  <h3><Sparkles size={18} /> Properties</h3>
-                  <div className="property-card"><span><UserRound size={15} /> Nguoi tao</span><div className="assignee-preview"><Avatar name={creatorName} src={creator?.avatarUrl} size="sm" /><strong>{creatorName}</strong></div></div>
-                  <div className="property-card"><span><CalendarClock size={15} /> Han date</span><input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} /></div>
-                  <div className="property-card"><span><Flag size={15} /> Priority</span><select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}><option>Low</option><option>Medium</option><option>High</option></select></div>
-                  <div className="property-card"><span><Tag size={15} /> Labels</span><div className="sidebar-labels">{labels.map((label, index) => <button className="task-chip label-chip" type="button" key={label} style={{ '--chip': labelPalette[index % labelPalette.length] }} onClick={() => removeLabel(label)}>{label}<X size={11} /></button>)}</div><div className="label-add-row"><input value={newLabelText} onChange={(e) => setNewLabelText(e.target.value)} placeholder="Frontend" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addLabel() } }} /><button className="icon-button" type="button" onClick={addLabel}><Plus size={15} /></button></div></div>
-                  <div className="property-line"><span>Status</span><strong>{card.columnName || 'Cot hien tai'}</strong></div>
-                  <div className="property-line"><span>Card ID</span><strong><Hash size={13} /> {card.id}</strong></div>
+                  <h3><Sparkles size={18} /> Thuộc tính</h3>
+                  <div className="property-card"><span><UserRound size={15} /> Người tạo</span><div className="assignee-preview"><Avatar name={creatorName} src={creator?.avatarUrl} size="sm" /><strong>{creatorName}</strong></div></div>
+                  <div className="property-card"><span><CalendarClock size={15} /> Hạn</span><input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} /></div>
+                  <div className="property-card"><span><Flag size={15} /> Ưu tiên</span><select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>{priorityOptions.map((priority) => <option key={priority.value} value={priority.value}>{priority.label}</option>)}</select></div>
+                  <div className="property-card"><span><Tag size={15} /> Nhãn</span><div className="sidebar-labels">{labels.map((label, index) => <button className="task-chip label-chip" type="button" key={label} style={{ '--chip': labelPalette[index % labelPalette.length] }} onClick={() => removeLabel(label)}>{label}<X size={11} /></button>)}</div><div className="label-add-row"><input value={newLabelText} onChange={(e) => setNewLabelText(e.target.value)} placeholder="Giao diện" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addLabel() } }} /><button className="icon-button" type="button" onClick={addLabel}><Plus size={15} /></button></div></div>
+                  <div className="property-line"><span>Trạng thái</span><strong>{card.columnName || 'Cột hiện tại'}</strong></div>
+                  <div className="property-line"><span>Mã thẻ</span><strong><Hash size={13} /> {card.id}</strong></div>
                   <div className="task-progress-card">
-                    <span>Checklist progress</span>
+                    <span>Tiến độ danh sách việc</span>
                     <strong>{checklistPercent}%</strong>
                     <div className="checklist-progress"><span style={{ width: `${checklistPercent}%` }} /></div>
                   </div>
@@ -311,22 +311,22 @@ function CardDetailModal({ cardId, member, onClose, onSaved, onDeleted }) {
 
               <aside className="task-comments-column">
                 <section className="task-section comments-panel">
-                  <h3><MessageSquarePlus size={18} /> Comment</h3>
+                  <h3><MessageSquarePlus size={18} /> Bình luận</h3>
                   <form className="comment-composer" onSubmit={addComment}>
-                    <button className="icon-button subtle" type="button" title="Mention"><AtSign size={16} /></button>
-                    <input value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Viet comment..." />
-                    <button className="icon-button subtle" type="button" title="Emoji"><Smile size={16} /></button>
-                    <button className="icon-button send-button" type="submit" title="Them comment"><Send size={16} /></button>
+                    <button className="icon-button subtle" type="button" title="Nhắc tên"><AtSign size={16} /></button>
+                    <input value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Viết bình luận..." />
+                    <button className="icon-button subtle" type="button" title="Biểu tượng cảm xúc"><Smile size={16} /></button>
+                    <button className="icon-button send-button" type="submit" title="Thêm bình luận"><Send size={16} /></button>
                   </form>
                   <div className="comment-list modern-comments">
                     {comments.map((comment) => (
                       <div className="comment-row modern-comment" key={comment.id}>
                         <Avatar name={comment.userName} src={comment.avatarUrl} size="sm" />
-                        <div><header><strong>{comment.userName}</strong><small>Just now</small></header><p>{comment.content}</p><footer><button type="button">React</button><button type="button">Reply</button></footer></div>
-                        <button className="icon-button danger" type="button" title="Delete comment" onClick={() => deleteComment(comment.id)}><Trash2 size={14} /></button>
+                        <div><header><strong>{comment.userName}</strong><small>Vừa xong</small></header><p>{comment.content}</p><footer><button type="button">Bày tỏ cảm xúc</button><button type="button">Trả lời</button></footer></div>
+                        <button className="icon-button danger" type="button" title="Xóa bình luận" onClick={() => deleteComment(comment.id)}><Trash2 size={14} /></button>
                       </div>
                     ))}
-                    {comments.length === 0 && <div className="empty-inline compact-empty"><strong>Chua co comment</strong><span>Bat dau trao doi.</span></div>}
+                    {comments.length === 0 && <div className="empty-inline compact-empty"><strong>Chưa có bình luận</strong><span>Bắt đầu trao đổi.</span></div>}
                   </div>
                 </section>
               </aside>

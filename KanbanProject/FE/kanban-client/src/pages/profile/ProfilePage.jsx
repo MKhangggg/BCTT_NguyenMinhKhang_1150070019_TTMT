@@ -17,14 +17,14 @@ function ProfilePage() {
     setMessage('')
     setError('')
     if (!form.currentPassword || !form.newPassword) {
-      setError('Please fill both password fields.')
+      setError('Vui lòng nhập đầy đủ hai ô mật khẩu.')
       return
     }
 
     try {
       await authService.changePassword(form)
       setForm({ currentPassword: '', newPassword: '' })
-      setMessage('Password changed successfully.')
+      setMessage('Đổi mật khẩu thành công.')
     } catch (err) {
       setError(getErrorMessage(err))
     }
@@ -41,18 +41,18 @@ function ProfilePage() {
       </div>
 
       <form className="profile-form stack" onSubmit={changePassword}>
-        <h3><KeyRound size={18} /> Change password</h3>
+        <h3><KeyRound size={18} /> Đổi mật khẩu</h3>
         <Notice type="success">{message}</Notice>
         <Notice type="error">{error}</Notice>
         <label>
-          Current password
+          Mật khẩu hiện tại
           <input type="password" value={form.currentPassword} onChange={(e) => setForm({ ...form, currentPassword: e.target.value })} />
         </label>
         <label>
-          Password moi
+          Mật khẩu mới
           <input type="password" value={form.newPassword} onChange={(e) => setForm({ ...form, newPassword: e.target.value })} />
         </label>
-        <button className="primary-button compact" type="submit">Update password</button>
+        <button className="primary-button compact" type="submit">Cập nhật mật khẩu</button>
       </form>
     </section>
   )

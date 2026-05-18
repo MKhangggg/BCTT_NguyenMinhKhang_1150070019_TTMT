@@ -19,7 +19,7 @@ public class CommentService : ICommentService
     public async Task<List<CommentDto>> GetCommentsAsync(int userId, int cardId)
     {
         var card = await _db.Cards.AsNoTracking().FirstOrDefaultAsync(c => c.Id == cardId)
-            ?? throw new KeyNotFoundException("Không tìm thấy card.");
+            ?? throw new KeyNotFoundException("Không tìm thấy thẻ.");
         await BoardAccess.EnsureMemberAsync(_db, card.BoardId, userId);
 
         var comments = await _db.Comments
@@ -35,7 +35,7 @@ public class CommentService : ICommentService
     public async Task<CommentDto> AddCommentAsync(int userId, int cardId, CreateCommentRequest request)
     {
         var card = await _db.Cards.FirstOrDefaultAsync(c => c.Id == cardId)
-            ?? throw new KeyNotFoundException("Không tìm thấy card.");
+            ?? throw new KeyNotFoundException("Không tìm thấy thẻ.");
         await BoardAccess.EnsureCanEditCardsAsync(_db, card.BoardId, userId);
 
         var comment = new Comment
@@ -52,7 +52,7 @@ public class CommentService : ICommentService
             CardId = cardId,
             UserId = userId,
             Action = "Comment",
-            Description = $"Bình luận trong card {card.Title}"
+            Description = $"Bình luận trong thẻ {card.Title}"
         });
         await _db.SaveChangesAsync();
 

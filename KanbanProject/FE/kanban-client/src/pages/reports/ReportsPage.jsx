@@ -16,7 +16,7 @@ function ReportsPage() {
     const load = async () => {
       try {
         setLoading(true)
-        const summaries = await boardService.getBoard()
+        const summaries = await boardService.getBoards()
         const details = await Promise.all(summaries.map((board) => boardService.getBoard(board.id)))
         setBoard(details)
       } catch (err) {
@@ -31,39 +31,42 @@ function ReportsPage() {
 
   const cards = useMemo(() => boards.flatMap((board) => (board.columns || []).flatMap((column) => column.cards || [])), [boards])
   const completedCards = useMemo(() => boards.reduce((sum, board) => {
-    const completedColumns = (board.columns || []).filter((column) => column.name.toLowerCase().includes('done'))
+    const completedColumns = (board.columns || []).filter((column) => {
+      const name = column.name.toLowerCase()
+      return name.includes('done') || name.includes('hoàn thành') || name.includes('xong')
+    })
     return sum + completedColumns.reduce((count, column) => count + (column.cards?.length || 0), 0)
   }, 0), [boards])
   const totalMembers = boards.reduce((sum, board) => sum + (board.members?.length || board.memberCount || 0), 0)
 
-  if (loading) return <Loading label="Loading reports" />
+  if (loading) return <Loading label="Đang tải báo cáo" />
 
   return (
     <section className="page stack">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">Analytics</span>
-          <h2>Reports</h2>
-          <p className="muted">Workspace-level overview with links to detailed board reports.</p>
+          <span className="eyebrow">Phân tích</span>
+          <h2>Báo cáo</h2>
+          <p className="muted">Tổng quan không gian làm việc và liên kết tới báo cáo chi tiết từng bảng.</p>
         </div>
       </div>
 
       <Notice type="error">{error}</Notice>
 
       <div className="stats-grid">
-        <StatCard icon={<FolderKanban size={20} />} label="Board" value={boards.length} hint="co san" tone="blue" />
-        <StatCard icon={<BarChart3 size={20} />} label="Cards" value={cards.length} hint="total work" tone="amber" />
-        <StatCard icon={<CheckCircle2 size={20} />} label="Done" value={doneCards} hint="completed" tone="green" />
-        <StatCard icon={<Users size={20} />} label="Members" value={totalMembers} hint="board memberhips" tone="red" />
+        <StatCard icon={<FolderKanban size={20} />} label="Bảng" value={boards.length} hint="có sẵn" tone="blue" />
+        <StatCard icon={<BarChart3 size={20} />} label="Thẻ" value={cards.length} hint="tổng công việc" tone="amber" />
+        <StatCard icon={<CheckCircle2 size={20} />} label="Hoàn thành" value={completedCards} hint="đã xong" tone="green" />
+        <StatCard icon={<Users size={20} />} label="Thành viên" value={totalMembers} hint="trong bảng" tone="red" />
       </div>
 
       <div className="board-grid">
         {boards.map((board) => (
           <Link className="board-card" key={board.id} to={`/boards/${board.id}/reports`}>
-            <span className="eyebrow">Board report</span>
+            <span className="eyebrow">Báo cáo bảng</span>
             <h3>{board.name}</h3>
-            <p>{board.description || 'Chua co mo ta'}</p>
-            <div className="board-meta">{board.columns?.length || 0} columns / {board.members?.length || board.memberCount || 0} member</div>
+            <p>{board.description || 'Chưa có mô tả'}</p>
+            <div className="board-meta">{board.columns?.length || 0} cột / {board.members?.length || board.memberCount || 0} thành viên</div>
           </Link>
         ))}
       </div>

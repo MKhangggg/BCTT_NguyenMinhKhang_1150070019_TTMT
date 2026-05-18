@@ -18,20 +18,20 @@ var builder = WebApplication.CreateBuilder(args);
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 if (corsOrigins.Length == 0)
 {
-    throw new InvalidOperationException("Cors:AllowedOrigins must contain at least one origin.");
+    throw new InvalidOperationException("Cors:AllowedOrigins phải có ít nhất một origin.");
 }
 
-var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is missing.");
+var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Thiếu cấu hình Jwt:Key.");
 if (jwtKey.Length < 32)
 {
-    throw new InvalidOperationException("Jwt:Key must be at least 32 characters.");
+    throw new InvalidOperationException("Jwt:Key phải có ít nhất 32 ký tự.");
 }
 
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("Jwt:Issuer is missing.");
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? throw new InvalidOperationException("Jwt:Audience is missing.");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("Thiếu cấu hình Jwt:Issuer.");
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? throw new InvalidOperationException("Thiếu cấu hình Jwt:Audience.");
 if (!int.TryParse(builder.Configuration["Jwt:ExpiresInMinutes"], out var jwtExpiresInMinutes) || jwtExpiresInMinutes <= 0)
 {
-    throw new InvalidOperationException("Jwt:ExpiresInMinutes must be a positive integer.");
+    throw new InvalidOperationException("Jwt:ExpiresInMinutes phải là số nguyên dương.");
 }
 
 var autoMigrateOnStartup = builder.Configuration.GetValue("DatabaseStartup:AutoMigrate", builder.Environment.IsDevelopment());
@@ -177,7 +177,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Kanban API", Version = "v1" });
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "API Kanban", Version = "v1" });
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -225,15 +225,15 @@ app.UseAuthorization();
 app.MapGet("/health", async (AppDbContext dbContext, CancellationToken cancellationToken) =>
 {
     var databaseHealthy = await dbContext.Database.CanConnectAsync(cancellationToken);
-    var status = databaseHealthy ? "Healthy" : "Degraded";
+    var status = databaseHealthy ? "Hoạt động" : "Suy giảm";
 
     return Results.Json(new
     {
         status,
         checks = new
         {
-            api = "Healthy",
-            database = databaseHealthy ? "Healthy" : "Unavailable"
+            api = "Hoạt động",
+            database = databaseHealthy ? "Hoạt động" : "Không khả dụng"
         },
         timestampUtc = DateTimeOffset.UtcNow
     }, statusCode: databaseHealthy ? StatusCodes.Status200OK : StatusCodes.Status503ServiceUnavailable);
@@ -267,7 +267,7 @@ if (autoMigrateOnStartup || autoSeedOnStartup)
 }
 else
 {
-    app.Logger.LogInformation("Automatic database migration and seeding are disabled by configuration.");
+    app.Logger.LogInformation("Tự động migrate/seed database đã bị tắt trong cấu hình.");
 }
 
 app.Run();

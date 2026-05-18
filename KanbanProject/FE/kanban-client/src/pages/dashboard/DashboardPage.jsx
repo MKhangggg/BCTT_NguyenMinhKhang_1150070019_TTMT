@@ -48,7 +48,7 @@ function DashboardPage() {
     event.preventDefault()
     setError('')
     if (!form.name.trim()) {
-      setError('Vui lòng nhập tên board.')
+      setError('Vui lòng nhập tên bảng.')
       return
     }
 
@@ -65,35 +65,35 @@ function DashboardPage() {
   }
 
   if (loading) {
-    return <Loading label="Đang tải danh sách board" />
+    return <Loading label="Đang tải danh sách bảng" />
   }
 
   return (
     <section className="page stack">
       <div className="dashboard-hero">
         <div>
-          <span className="eyebrow">Board</span>
+          <span className="eyebrow">Bảng</span>
           <h2>Lập kế hoạch, theo dõi và hoàn thành công việc dễ dàng hơn.</h2>
-          <p>Quản lý board, mời đồng đội và tiếp tục luồng Kanban ngay trong một không gian làm việc.</p>
+          <p>Quản lý bảng, mời đồng đội và tiếp tục luồng Kanban ngay trong một không gian làm việc.</p>
         </div>
         <Sparkles size={42} />
       </div>
 
       <div className="stats-grid">
-        <StatCard icon={<FolderKanban size={20} />} label="Board" value={boards.length} hint="đang tham gia" tone="blue" />
-        <StatCard icon={<Users size={20} />} label="Thành viên" value={totalMembers} hint="trên các board" tone="green" />
-        <StatCard icon={<Globe2 size={20} />} label="Công khai" value={boards.filter((board) => board.isPublic).length} hint="board mở" tone="amber" />
-        <StatCard icon={<Lock size={20} />} label="Riêng tư" value={boards.filter((board) => !board.isPublic).length} hint="board giới hạn" tone="red" />
+        <StatCard icon={<FolderKanban size={20} />} label="Bảng" value={boards.length} hint="đang tham gia" tone="blue" />
+        <StatCard icon={<Users size={20} />} label="Thành viên" value={totalMembers} hint="trên các bảng" tone="green" />
+        <StatCard icon={<Globe2 size={20} />} label="Công khai" value={boards.filter((board) => board.isPublic).length} hint="bảng mở" tone="amber" />
+        <StatCard icon={<Lock size={20} />} label="Riêng tư" value={boards.filter((board) => !board.isPublic).length} hint="bảng giới hạn" tone="red" />
       </div>
 
       <div className="section-heading">
         <div>
           <span className="eyebrow">Không gian làm việc</span>
-          <h2>Các board Kanban của bạn</h2>
+          <h2>Các bảng Kanban của bạn</h2>
         </div>
         <div className="search-field">
           <Search size={17} />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm board" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm bảng" />
         </div>
       </div>
 
@@ -103,7 +103,7 @@ function DashboardPage() {
         <input
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
-          placeholder="Tên board"
+          placeholder="Tên bảng"
         />
         <input
           value={form.description}
@@ -119,7 +119,7 @@ function DashboardPage() {
           Công khai
         </label>
         <button className="primary-button compact" type="submit" disabled={saving}>
-          <Plus size={17} /> {saving ? 'Đang tạo...' : 'Tạo board'}
+          <Plus size={17} /> {saving ? 'Đang tạo...' : 'Tạo bảng'}
         </button>
       </form>
 
@@ -127,8 +127,8 @@ function DashboardPage() {
         {filteredBoard.map((board) => <BoardCard key={board.id} board={board} />)}
         {filteredBoard.length === 0 && (
           <div className="empty-inline">
-            <strong>Không tìm thấy board</strong>
-            <span>Thử từ khóa khác hoặc tạo board mới.</span>
+            <strong>Không tìm thấy bảng</strong>
+            <span>Thử từ khóa khác hoặc tạo bảng mới.</span>
           </div>
         )}
       </div>

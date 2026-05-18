@@ -97,7 +97,7 @@ public class AdminService : IAdminService
     public async Task<AdminUserDto> UpdateUserAsync(int currentUserId, int userId, UpdateUserByAdminRequest request)
     {
         await EnsureSystemAdminAsync(currentUserId);
-        var user = await _db.Users.FindAsync(userId) ?? throw new KeyNotFoundException("User not found.");
+        var user = await _db.Users.FindAsync(userId) ?? throw new KeyNotFoundException("Không tìm thấy người dùng.");
         await EnsureUniqueAsync(request.Email, request.UserName, userId);
         await EnsureLastAdminIsNotRemovedAsync(user, request.IsSystemAdmin, request.IsActive);
 
@@ -120,10 +120,10 @@ public class AdminService : IAdminService
         await EnsureSystemAdminAsync(currentUserId);
         if (currentUserId == userId && !request.IsActive)
         {
-            throw new InvalidOperationException("You cannot deactivate your own account.");
+            throw new InvalidOperationException("Bạn không thể tự khóa tài khoản của mình.");
         }
 
-        var user = await _db.Users.FindAsync(userId) ?? throw new KeyNotFoundException("User not found.");
+        var user = await _db.Users.FindAsync(userId) ?? throw new KeyNotFoundException("Không tìm thấy người dùng.");
         await EnsureLastAdminIsNotRemovedAsync(user, user.IsSystemAdmin, request.IsActive);
         user.IsActive = request.IsActive;
         user.UpdatedAt = DateTime.UtcNow;
@@ -136,10 +136,10 @@ public class AdminService : IAdminService
         await EnsureSystemAdminAsync(currentUserId);
         if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 6)
         {
-            throw new InvalidOperationException("New password must have at least 6 characters.");
+            throw new InvalidOperationException("Mật khẩu mới phải có ít nhất 6 ký tự.");
         }
 
-        var user = await _db.Users.FindAsync(userId) ?? throw new KeyNotFoundException("User not found.");
+        var user = await _db.Users.FindAsync(userId) ?? throw new KeyNotFoundException("Không tìm thấy người dùng.");
         user.PasswordHash = PasswordHelper.HashPassword(request.NewPassword);
         user.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
@@ -150,7 +150,7 @@ public class AdminService : IAdminService
         var isAdmin = await _db.Users.AnyAsync(u => u.Id == userId && u.IsActive && u.IsSystemAdmin);
         if (!isAdmin)
         {
-            throw new ForbiddenException("System admin permission is required.");
+            throw new ForbiddenException("Bạn cần quyền quản trị hệ thống.");
         }
     }
 
@@ -160,12 +160,12 @@ public class AdminService : IAdminService
         var normalizedUserName = userName.Trim().ToLowerInvariant();
         if (await _db.Users.AnyAsync(u => u.Email == normalizedEmail && u.Id != exceptUserId))
         {
-            throw new InvalidOperationException("Email is already used.");
+            throw new InvalidOperationException("Email đã được sử dụng.");
         }
 
         if (await _db.Users.AnyAsync(u => u.UserName == normalizedUserName && u.Id != exceptUserId))
         {
-            throw new InvalidOperationException("Username is already used.");
+            throw new InvalidOperationException("Tên đăng nhập đã được sử dụng.");
         }
     }
 
@@ -179,7 +179,7 @@ public class AdminService : IAdminService
         var otherAdmins = await _db.Users.AnyAsync(u => u.Id != user.Id && u.IsActive && u.IsSystemAdmin);
         if (!otherAdmins)
         {
-            throw new InvalidOperationException("At least one active system admin is required.");
+            throw new InvalidOperationException("Hệ thống cần ít nhất một quản trị viên đang hoạt động.");
         }
     }
 

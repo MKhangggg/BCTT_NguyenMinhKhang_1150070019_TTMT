@@ -28,15 +28,15 @@ function ReportPage() {
       .finally(() => setLoading(false))
   }, [boardId])
 
-  if (loading) return <Loading label="Loading report" />
+  if (loading) return <Loading label="Đang tải báo cáo" />
 
   return (
     <section className="page stack">
-      <Link className="ghost-button compact self-start" to={`/boards/${boardId}`}><ArrowLeft size={16} /> Back</Link>
+      <Link className="ghost-button compact self-start" to={`/boards/${boardId}`}><ArrowLeft size={16} /> Quay lại</Link>
       <div className="section-heading">
         <div>
-          <span className="eyebrow">Report</span>
-          <h2>{board?.name || 'Board report'}</h2>
+          <span className="eyebrow">Báo cáo</span>
+          <h2>{board?.name || 'Báo cáo bảng'}</h2>
         </div>
       </div>
       <Notice type="error">{error}</Notice>

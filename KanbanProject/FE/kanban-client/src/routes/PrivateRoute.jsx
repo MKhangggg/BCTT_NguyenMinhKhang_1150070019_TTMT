@@ -7,7 +7,7 @@ function PrivateRoute() {
   const location = useLocation()
 
   if (booting) {
-    return <Loading label="Loading workspace" />
+    return <Loading label="Đang tải không gian làm việc" />
   }
 
   if (!isAuthenticated) {

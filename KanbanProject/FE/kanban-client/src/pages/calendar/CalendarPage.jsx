@@ -7,7 +7,13 @@ import StatCard from '../../components/common/StatCard'
 import { getErrorMessage } from '../../services/api'
 import { boardService } from '../../services/boardService'
 
-const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const WEEKDAY_LABELS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
+
+const priorityLabels = {
+  Low: 'Thấp',
+  Medium: 'Trung bình',
+  High: 'Cao',
+}
 
 const priorityOrder = {
   High: 3,
@@ -83,7 +89,7 @@ function CalendarPage() {
     try {
       setLoading(true)
       setError('')
-      const boardSummaries = await boardService.getBoard()
+      const boardSummaries = await boardService.getBoards()
       setBoard(boardSummaries)
       const boardDetails = await Promise.all(boardSummaries.map((board) => boardService.getBoard(board.id)))
       const cardsWithDueDate = boardDetails.flatMap((board) =>
@@ -212,24 +218,24 @@ function CalendarPage() {
     <section className="page stack">
       <div className="section-heading">
         <div>
-          <h2>Calendar</h2>
-          <p>Track card deadlines across all boards in one timeline.</p>
+          <h2>Lịch</h2>
+          <p>Theo dõi hạn thẻ trên tất cả bảng trong một lịch chung.</p>
         </div>
         <button type="button" className="ghost-button compact" onClick={loadCalendar}>
-          Refresh
+          Làm mới
         </button>
       </div>
 
       {error && <Notice type="error">{error}</Notice>}
 
       <div className="calendar-overview">
-        <StatCard icon={<CalendarDays size={18} />} label="Han this month" value={monthCardCount} tone="blue" />
-        <StatCard icon={<AlertTriangle size={18} />} label="Overdue" value={overdueCount} tone="red" />
-        <StatCard icon={<Clock3 size={18} />} label="Han today" value={todayCount} tone="amber" />
+        <StatCard icon={<CalendarDays size={18} />} label="Hạn tháng này" value={monthCardCount} tone="blue" />
+        <StatCard icon={<AlertTriangle size={18} />} label="Quá hạn" value={overdueCount} tone="red" />
+        <StatCard icon={<Clock3 size={18} />} label="Hạn hôm nay" value={todayCount} tone="amber" />
       </div>
 
       {loading ? (
-        <Loading label="Loading calendar..." />
+        <Loading label="Đang tải lịch..." />
       ) : (
         <div className="calendar-surface">
           <div className="calendar-panel">
@@ -240,7 +246,7 @@ function CalendarPage() {
                   <ChevronLeft size={16} />
                 </button>
                 <button type="button" className="ghost-button compact" onClick={jumpToToday}>
-                  Today
+                  Hôm nay
                 </button>
                 <button type="button" className="ghost-button compact" onClick={() => shiftMonth(1)}>
                   <ChevronRight size={16} />
@@ -277,7 +283,7 @@ function CalendarPage() {
                     type="button"
                     className={dayClassName}
                     onClick={() => handleSelectDay(date)}
-                    title={`${date.toLocaleDateString()} (${cardsForDay.length} cards)`}
+                    title={`${date.toLocaleDateString()} (${cardsForDay.length} thẻ)`}
                   >
                     <span className="day-number">{date.getDate()}</span>
                     <div className="day-chips">
@@ -289,7 +295,7 @@ function CalendarPage() {
                           {card.title}
                         </span>
                       ))}
-                      {cardsForDay.length > 3 && <span className="day-more">+{cardsForDay.length - 3} more</span>}
+                      {cardsForDay.length > 3 && <span className="day-more">+{cardsForDay.length - 3} nữa</span>}
                     </div>
                   </button>
                 )
@@ -301,7 +307,7 @@ function CalendarPage() {
             <div className="calendar-agenda-head">
               <div>
                 <h3>{selectedDateLabel}</h3>
-                <span className="calendar-agenda-count">{selectedDateCards.length} card(s)</span>
+                <span className="calendar-agenda-count">{selectedDateCards.length} thẻ</span>
               </div>
             </div>
 
@@ -311,29 +317,29 @@ function CalendarPage() {
                 <input
                   value={filters.query}
                   onChange={(event) => setFilters((current) => ({ ...current, query: event.target.value }))}
-                  placeholder="Tim tieu de, board, nguoi phu trach, nhan..."
+                  placeholder="Tìm tiêu đề, bảng, người phụ trách, nhãn..."
                 />
               </label>
               <div className="calendar-filter-row">
                 <label className="field">
-                  Priority
+                  Ưu tiên
                   <select
                     value={filters.priority}
                     onChange={(event) => setFilters((current) => ({ ...current, priority: event.target.value }))}
                   >
-                    <option value="All">All</option>
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
+                    <option value="All">Tất cả</option>
+                    <option value="Low">Thấp</option>
+                    <option value="Medium">Trung bình</option>
+                    <option value="High">Cao</option>
                   </select>
                 </label>
                 <label className="field">
-                  Board
+                  Bảng
                   <select
                     value={filters.boardId}
                     onChange={(event) => setFilters((current) => ({ ...current, boardId: event.target.value }))}
                   >
-                    <option value="All">Tat ca board</option>
+                    <option value="All">Tất cả bảng</option>
                     {boards.map((board) => (
                       <option key={board.id} value={board.id}>
                         {board.name}
@@ -348,7 +354,7 @@ function CalendarPage() {
               {selectedDateCards.length === 0 ? (
                 <div className="empty-state">
                   <CalendarDays size={30} />
-                  <p>Khong co the den han trong ngay nay voi bo loc hien tai.</p>
+                  <p>Không có thẻ đến hạn trong ngày này với bộ lọc hiện tại.</p>
                 </div>
               ) : (
                 selectedDateCards.map((card) => {
@@ -357,14 +363,14 @@ function CalendarPage() {
                     <article key={`${card.boardId}-${card.id}`} className={`agenda-card ${status}`}>
                       <div className="agenda-top">
                         <Link to={`/boards/${card.boardId}`}>{card.title}</Link>
-                        <span className={`priority-pill ${card.priority.toLowerCase()}`}>{card.priority}</span>
+                        <span className={`priority-pill ${card.priority.toLowerCase()}`}>{priorityLabels[card.priority] || card.priority}</span>
                       </div>
                       <p>
                         {card.boardName} · {card.columnName}
                       </p>
                       <div className="agenda-meta">
                         <span>{formatDueDateTime(card.dueDate)}</span>
-                        {card.assigneeName && <span>Assignee: {card.assigneeName}</span>}
+                        {card.assigneeName && <span>Người phụ trách: {card.assigneeName}</span>}
                       </div>
                     </article>
                   )

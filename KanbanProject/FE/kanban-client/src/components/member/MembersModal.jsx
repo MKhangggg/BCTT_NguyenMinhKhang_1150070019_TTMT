@@ -6,7 +6,7 @@ import { getErrorMessage } from '../../services/api'
 import { memberService } from '../../services/memberService'
 
 const roleOptions = [
-  { value: 'Admin', label: 'Quản trị board' },
+  { value: 'Admin', label: 'Quản trị bảng' },
   { value: 'Member', label: 'Thành viên' },
   { value: 'Viewer', label: 'Người xem' },
 ]
@@ -56,7 +56,7 @@ function MembersModal({ boardId, member: members = [], onClose, onChanged }) {
     <div className="modal-backdrop">
       <section className="modal-panel member-modal">
         <header className="modal-header">
-          <h2>Thành viên board</h2>
+          <h2>Thành viên bảng</h2>
           <button className="icon-button" type="button" onClick={onClose} title="Đóng"><X size={18} /></button>
         </header>
 
@@ -67,7 +67,7 @@ function MembersModal({ boardId, member: members = [], onClose, onChanged }) {
             type="email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            placeholder="member@email.com"
+            placeholder="thanhvien@email.com"
           />
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
             {roleOptions.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}

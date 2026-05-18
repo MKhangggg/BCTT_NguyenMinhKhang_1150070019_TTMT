@@ -7,7 +7,7 @@ function AdminRoute() {
   const location = useLocation()
 
   if (booting) {
-    return <Loading label="Checking permissions" />
+    return <Loading label="Đang kiểm tra quyền" />
   }
 
   if (!user?.isSystemAdmin) {

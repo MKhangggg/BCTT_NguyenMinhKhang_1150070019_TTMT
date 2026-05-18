@@ -38,10 +38,25 @@ public class ReportService : IReportService
         return new BoardReportDto(
             boardId,
             cards.Count,
-            cards.Count(c => c.Column.Name.Contains("Done", StringComparison.OrdinalIgnoreCase)),
-            cards.Count(c => c.Column.Name.Contains("Progress", StringComparison.OrdinalIgnoreCase) || c.Column.Name.Contains("Doing", StringComparison.OrdinalIgnoreCase)),
-            cards.Count(c => c.DueDate.HasValue && c.DueDate.Value.Date < DateTime.UtcNow.Date && !c.Column.Name.Contains("Done", StringComparison.OrdinalIgnoreCase)),
+            cards.Count(c => IsCompletedColumn(c.Column.Name)),
+            cards.Count(c => IsInProgressColumn(c.Column.Name)),
+            cards.Count(c => c.DueDate.HasValue && c.DueDate.Value.Date < DateTime.UtcNow.Date && !IsCompletedColumn(c.Column.Name)),
             cardsByColumn,
             cardsByPriority);
+    }
+
+    private static bool IsCompletedColumn(string columnName)
+    {
+        return columnName.Contains("Done", StringComparison.OrdinalIgnoreCase)
+            || columnName.Contains("Hoàn thành", StringComparison.OrdinalIgnoreCase)
+            || columnName.Contains("Xong", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsInProgressColumn(string columnName)
+    {
+        return columnName.Contains("Progress", StringComparison.OrdinalIgnoreCase)
+            || columnName.Contains("Doing", StringComparison.OrdinalIgnoreCase)
+            || columnName.Contains("Đang làm", StringComparison.OrdinalIgnoreCase)
+            || columnName.Contains("Đang thực hiện", StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -34,16 +34,16 @@ public class MemberService : IMemberService
         await BoardAccess.EnsureCanManageBoardAsync(_db, boardId, userId);
         if (request.Role == BoardRole.Owner)
         {
-            throw new InvalidOperationException("Không thể thêm Owner bằng API mời thành viên.");
+            throw new InvalidOperationException("Không thể thêm chủ sở hữu bằng API mời thành viên.");
         }
 
         var email = request.Email.Trim().ToLowerInvariant();
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email)
-            ?? throw new KeyNotFoundException("Không tìm thấy user với email này.");
+            ?? throw new KeyNotFoundException("Không tìm thấy người dùng với email này.");
 
         if (await _db.BoardMembers.AnyAsync(m => m.BoardId == boardId && m.UserId == user.Id))
         {
-            throw new InvalidOperationException("User đã là thành viên của board.");
+            throw new InvalidOperationException("Người dùng đã là thành viên của bảng.");
         }
 
         var member = new BoardMember
@@ -57,8 +57,8 @@ public class MemberService : IMemberService
         _db.Notifications.Add(new Notification
         {
             UserId = user.Id,
-            Title = "Bạn được mời vào board",
-            Message = "Bạn vừa được thêm vào một board Kanban.",
+            Title = "Bạn được mời vào bảng",
+            Message = "Bạn vừa được thêm vào một bảng Kanban.",
             Type = "BoardInvite"
         });
         _db.ActivityLogs.Add(new ActivityLog
@@ -66,7 +66,7 @@ public class MemberService : IMemberService
             BoardId = boardId,
             UserId = userId,
             Action = "AddMember",
-            Description = $"Thêm {user.Email} vào board"
+            Description = $"Thêm {user.Email} vào bảng"
         });
         await _db.SaveChangesAsync();
 
@@ -78,7 +78,7 @@ public class MemberService : IMemberService
         await BoardAccess.EnsureCanManageBoardAsync(_db, boardId, userId);
         if (request.Role == BoardRole.Owner)
         {
-            throw new InvalidOperationException("Không thể chuyển role thành Owner bằng API này.");
+            throw new InvalidOperationException("Không thể chuyển vai trò thành chủ sở hữu bằng API này.");
         }
 
         var member = await _db.BoardMembers
@@ -88,7 +88,7 @@ public class MemberService : IMemberService
 
         if (member.Role == BoardRole.Owner)
         {
-            throw new InvalidOperationException("Không thể đổi role của Owner.");
+            throw new InvalidOperationException("Không thể đổi vai trò của chủ sở hữu.");
         }
 
         member.Role = request.Role;
@@ -105,7 +105,7 @@ public class MemberService : IMemberService
 
         if (member.Role == BoardRole.Owner)
         {
-            throw new InvalidOperationException("Không thể xóa Owner khỏi board.");
+            throw new InvalidOperationException("Không thể xóa chủ sở hữu khỏi bảng.");
         }
 
         _db.BoardMembers.Remove(member);

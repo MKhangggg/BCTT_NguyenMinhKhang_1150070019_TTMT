@@ -29,7 +29,7 @@ public class NotificationService : INotificationService
     {
         var notification = await _db.Notifications
             .FirstOrDefaultAsync(n => n.Id == notificationId && n.UserId == userId)
-            ?? throw new KeyNotFoundException("Không tìm thấy notification.");
+            ?? throw new KeyNotFoundException("Không tìm thấy thông báo.");
 
         notification.IsRead = true;
         await _db.SaveChangesAsync();

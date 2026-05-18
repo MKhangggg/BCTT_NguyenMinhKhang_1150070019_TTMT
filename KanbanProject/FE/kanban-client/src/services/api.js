@@ -39,7 +39,7 @@ export const extractApiError = (error) => {
     (typeof responseData?.message === 'string' && responseData.message.trim())
     || messageFromValidation
     || error?.message
-    || 'Request failed'
+    || 'Yêu cầu thất bại'
 
   return {
     message,

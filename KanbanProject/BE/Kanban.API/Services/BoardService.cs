@@ -38,7 +38,7 @@ public class BoardService : IBoardService
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            throw new InvalidOperationException("Tên board là bắt buộc.");
+            throw new InvalidOperationException("Tên bảng là bắt buộc.");
         }
 
         var board = new Board
@@ -50,9 +50,9 @@ public class BoardService : IBoardService
         };
 
         board.Members.Add(new BoardMember { UserId = userId, Role = BoardRole.Owner });
-        board.Columns.Add(new BoardColumn { Name = "Todo", Position = 1 });
-        board.Columns.Add(new BoardColumn { Name = "In Progress", Position = 2 });
-        board.Columns.Add(new BoardColumn { Name = "Done", Position = 3 });
+        board.Columns.Add(new BoardColumn { Name = "Cần làm", Position = 1 });
+        board.Columns.Add(new BoardColumn { Name = "Đang làm", Position = 2 });
+        board.Columns.Add(new BoardColumn { Name = "Hoàn thành", Position = 3 });
 
         _db.Boards.Add(board);
         await _db.SaveChangesAsync();
@@ -62,7 +62,7 @@ public class BoardService : IBoardService
             BoardId = board.Id,
             UserId = userId,
             Action = "CreateBoard",
-            Description = $"Tạo board {board.Name}"
+            Description = $"Tạo bảng {board.Name}"
         });
         await _db.SaveChangesAsync();
 
@@ -72,7 +72,7 @@ public class BoardService : IBoardService
     public async Task<BoardDetailDto> UpdateBoardAsync(int userId, int boardId, UpdateBoardRequest request)
     {
         await BoardAccess.EnsureCanManageBoardAsync(_db, boardId, userId);
-        var board = await _db.Boards.FindAsync(boardId) ?? throw new KeyNotFoundException("Không tìm thấy board.");
+        var board = await _db.Boards.FindAsync(boardId) ?? throw new KeyNotFoundException("Không tìm thấy bảng.");
 
         board.Name = request.Name.Trim();
         board.Description = request.Description;
@@ -86,7 +86,7 @@ public class BoardService : IBoardService
     public async Task DeleteBoardAsync(int userId, int boardId)
     {
         await BoardAccess.EnsureOwnerAsync(_db, boardId, userId);
-        var board = await _db.Boards.FindAsync(boardId) ?? throw new KeyNotFoundException("Không tìm thấy board.");
+        var board = await _db.Boards.FindAsync(boardId) ?? throw new KeyNotFoundException("Không tìm thấy bảng.");
         _db.Boards.Remove(board);
         await _db.SaveChangesAsync();
     }
@@ -99,6 +99,6 @@ public class BoardService : IBoardService
             .Include(b => b.Columns).ThenInclude(c => c.Cards).ThenInclude(c => c.Assignee)
             .Include(b => b.Columns).ThenInclude(c => c.Cards).ThenInclude(c => c.Labels)
             .FirstOrDefaultAsync(b => b.Id == boardId)
-            ?? throw new KeyNotFoundException("Không tìm thấy board.");
+            ?? throw new KeyNotFoundException("Không tìm thấy bảng.");
     }
 }

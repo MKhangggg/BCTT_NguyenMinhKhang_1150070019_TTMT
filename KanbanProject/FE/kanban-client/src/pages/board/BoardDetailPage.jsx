@@ -247,18 +247,18 @@ function BoardDetailPage() {
   }
 
   if (loading) {
-    return <Loading label="Đang tải board" />
+    return <Loading label="Đang tải bảng" />
   }
 
   if (!board) {
-    return <Notice type="error">{error || 'Không tìm thấy board'}</Notice>
+    return <Notice type="error">{error || 'Không tìm thấy bảng'}</Notice>
   }
 
   return (
     <section className={`board-page ${compactMode ? 'board-compact' : ''}`}>
       <div className="board-toolbar">
         <div className="board-title-block">
-          <span className="eyebrow">{board.isPublic ? 'Board công khai' : 'Board riêng tư'}</span>
+          <span className="eyebrow">{board.isPublic ? 'Bảng công khai' : 'Bảng riêng tư'}</span>
           <h2>{board.name}</h2>
           {board.description && <p>{board.description}</p>}
           <div className="member-stack">

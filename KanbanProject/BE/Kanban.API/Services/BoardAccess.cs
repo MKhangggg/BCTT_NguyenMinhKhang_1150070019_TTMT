@@ -26,7 +26,7 @@ internal static class BoardAccess
 
         if (role is null)
         {
-            throw new ForbiddenException("Bạn không thuộc board này.");
+            throw new ForbiddenException("Bạn không thuộc bảng này.");
         }
 
         return role.Value;
@@ -42,7 +42,7 @@ internal static class BoardAccess
         var role = await EnsureMemberAsync(db, boardId, userId);
         if (role is not (BoardRole.Owner or BoardRole.Admin))
         {
-            throw new ForbiddenException("Bạn không có quyền quản lý board này.");
+            throw new ForbiddenException("Bạn không có quyền quản lý bảng này.");
         }
     }
 
@@ -51,7 +51,7 @@ internal static class BoardAccess
         var role = await EnsureMemberAsync(db, boardId, userId);
         if (role == BoardRole.Viewer)
         {
-            throw new ForbiddenException("Viewer chỉ có quyền xem.");
+            throw new ForbiddenException("Người xem chỉ có quyền xem.");
         }
     }
 
@@ -60,7 +60,7 @@ internal static class BoardAccess
         var role = await EnsureMemberAsync(db, boardId, userId);
         if (role != BoardRole.Owner)
         {
-            throw new ForbiddenException("Chỉ Owner được thực hiện thao tác này.");
+            throw new ForbiddenException("Chỉ chủ sở hữu được thực hiện thao tác này.");
         }
     }
 
@@ -74,7 +74,7 @@ internal static class BoardAccess
         var exists = await db.BoardMembers.AnyAsync(m => m.BoardId == boardId && m.UserId == assigneeId);
         if (!exists)
         {
-            throw new InvalidOperationException("Người phụ trách phải là thành viên của board.");
+            throw new InvalidOperationException("Người phụ trách phải là thành viên của bảng.");
         }
     }
 }

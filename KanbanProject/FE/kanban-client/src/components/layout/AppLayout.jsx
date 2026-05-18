@@ -47,7 +47,7 @@ function AppLayout() {
           </div>
           <div className="topbar-search">
             <Search size={17} />
-            <input placeholder="Tìm board, thẻ, thành viên" />
+            <input placeholder="Tìm bảng, thẻ, thành viên" />
           </div>
           <div className="topbar-user">
             <NotificationMenu />

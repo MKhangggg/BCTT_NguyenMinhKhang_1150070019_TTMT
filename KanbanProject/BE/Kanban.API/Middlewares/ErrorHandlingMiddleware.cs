@@ -34,11 +34,11 @@ public class ErrorHandlingMiddleware
 
             if (statusCode == HttpStatusCode.InternalServerError)
             {
-                _logger.LogError(ex, "Unhandled API error. RequestId: {RequestId}", requestId);
+                _logger.LogError(ex, "Lỗi API chưa xử lý. RequestId: {RequestId}", requestId);
             }
             else
             {
-                _logger.LogWarning(ex, "Handled API error. RequestId: {RequestId}", requestId);
+                _logger.LogWarning(ex, "Lỗi API đã xử lý. RequestId: {RequestId}", requestId);
             }
 
             context.Response.ContentType = "application/json";

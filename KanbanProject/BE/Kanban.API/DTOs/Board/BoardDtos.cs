@@ -18,16 +18,16 @@ public record BoardDetailDto(
     List<BoardColumnDto> Columns);
 
 public record CreateBoardRequest(
-    [Required(ErrorMessage = "Tên board là bắt buộc.")]
-    [StringLength(120, MinimumLength = 2, ErrorMessage = "Tên board phải có từ 2 đến 120 ký tự.")]
+    [Required(ErrorMessage = "Tên bảng là bắt buộc.")]
+    [StringLength(120, MinimumLength = 2, ErrorMessage = "Tên bảng phải có từ 2 đến 120 ký tự.")]
     string Name,
     [StringLength(500, ErrorMessage = "Mô tả không được vượt quá 500 ký tự.")]
     string? Description,
     bool IsPublic);
 
 public record UpdateBoardRequest(
-    [Required(ErrorMessage = "Tên board là bắt buộc.")]
-    [StringLength(120, MinimumLength = 2, ErrorMessage = "Tên board phải có từ 2 đến 120 ký tự.")]
+    [Required(ErrorMessage = "Tên bảng là bắt buộc.")]
+    [StringLength(120, MinimumLength = 2, ErrorMessage = "Tên bảng phải có từ 2 đến 120 ký tự.")]
     string Name,
     [StringLength(500, ErrorMessage = "Mô tả không được vượt quá 500 ký tự.")]
     string? Description,

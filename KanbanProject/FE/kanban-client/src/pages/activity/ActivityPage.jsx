@@ -11,16 +11,16 @@ function ActivityPage() {
     <section className="page stack">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">Realtime</span>
-          <h2>Activity</h2>
-          <p className="muted">Live board changes captured from SignalR while you are working.</p>
+          <span className="eyebrow">Thời gian thực</span>
+          <h2>Hoạt động</h2>
+          <p className="muted">Các thay đổi trên bảng được ghi nhận qua SignalR khi bạn đang làm việc.</p>
         </div>
       </div>
 
       <div className="stats-grid">
-        <StatCard icon={<Activity size={20} />} label="Su kien truc tiep" value={liveNotifications.length} hint="phien nay" tone="blue" />
-        <StatCard icon={<Bell size={20} />} label="Unread" value={unread} hint="needs review" tone="amber" />
-        <StatCard icon={<CheckCircle2 size={20} />} label="Read" value={liveNotifications.length - unread} hint="already opened" tone="green" />
+        <StatCard icon={<Activity size={20} />} label="Sự kiện trực tiếp" value={liveNotifications.length} hint="phiên này" tone="blue" />
+        <StatCard icon={<Bell size={20} />} label="Chưa đọc" value={unread} hint="cần xem" tone="amber" />
+        <StatCard icon={<CheckCircle2 size={20} />} label="Đã đọc" value={liveNotifications.length - unread} hint="đã mở" tone="green" />
       </div>
 
       <div className="work-list">
@@ -33,7 +33,7 @@ function ActivityPage() {
             <small>{new Date(item.createdAt).toLocaleString()}</small>
           </button>
         ))}
-        {liveNotifications.length === 0 && <div className="empty-inline"><strong>Chua co hoat dong truc tiep</strong><span>Mo mot board va thay doi the/cot de xem su kien tai day.</span></div>}
+        {liveNotifications.length === 0 && <div className="empty-inline"><strong>Chưa có hoạt động trực tiếp</strong><span>Mở một bảng và thay đổi thẻ/cột để xem sự kiện tại đây.</span></div>}
       </div>
     </section>
   )

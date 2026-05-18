@@ -113,7 +113,7 @@ function AdminUsersPage() {
           isSystemAdmin: form.isSystemAdmin,
           isActive: form.isActive,
         })
-        setMessage('User updated successfully.')
+        setMessage('Cập nhật người dùng thành công.')
       } else {
         await adminService.createUser({
           fullName: form.fullName,
@@ -125,7 +125,7 @@ function AdminUsersPage() {
           isSystemAdmin: form.isSystemAdmin,
           isActive: form.isActive,
         })
-        setMessage('User created successfully.')
+        setMessage('Tạo người dùng thành công.')
         setForm(blankForm)
       }
       await load()
@@ -156,7 +156,7 @@ function AdminUsersPage() {
       setError('')
       await adminService.resetPassword(selectedUser.id, { newPassword: resetPassword })
       setResetPassword('')
-      setMessage(`Password reset for ${selectedUser.email}.`)
+      setMessage(`Đã đặt lại mật khẩu cho ${selectedUser.email}.`)
     } catch (err) {
       if (!redirectIfForbidden(err)) {
         setError(getErrorMessage(err))
@@ -164,25 +164,25 @@ function AdminUsersPage() {
     }
   }
 
-  if (loading) return <Loading label="Loading admin console" />
+  if (loading) return <Loading label="Đang tải trang quản trị" />
 
   return (
     <section className="page stack">
       <div className="admin-hero">
         <div>
-          <span className="eyebrow">Admin he thong</span>
-          <h2>User administration</h2>
-          <p>Manage company accounts, access status, system administrators, and operational ownership from one console.</p>
+          <span className="eyebrow">Quản trị hệ thống</span>
+          <h2>Quản lý người dùng</h2>
+          <p>Quản lý tài khoản, trạng thái truy cập, quyền quản trị hệ thống và quyền sở hữu vận hành từ một màn hình.</p>
         </div>
         <ShieldCheck size={44} />
       </div>
 
       {overview && (
         <div className="stats-grid">
-          <StatCard icon={<Users size={20} />} label="Users" value={overview.totalUsers} hint="tong tai khoan" tone="blue" />
-          <StatCard icon={<UserCog size={20} />} label="Active" value={overview.activeUsers} hint="co the dang nhap" tone="green" />
-          <StatCard icon={<ShieldCheck size={20} />} label="Admins" value={overview.systemAdmins} hint="quyen he thong" tone="amber" />
-          <StatCard icon={<KeyRound size={20} />} label="Board" value={overview.totalBoard} hint={`${overview.totalCards} the dang hoat dong`} tone="red" />
+          <StatCard icon={<Users size={20} />} label="Người dùng" value={overview.totalUsers} hint="tổng tài khoản" tone="blue" />
+          <StatCard icon={<UserCog size={20} />} label="Đang hoạt động" value={overview.activeUsers} hint="có thể đăng nhập" tone="green" />
+          <StatCard icon={<ShieldCheck size={20} />} label="Quản trị viên" value={overview.systemAdmins} hint="quyền hệ thống" tone="amber" />
+          <StatCard icon={<KeyRound size={20} />} label="Bảng" value={overview.totalBoard} hint={`${overview.totalCards} thẻ đang hoạt động`} tone="red" />
         </div>
       )}
 
@@ -193,17 +193,17 @@ function AdminUsersPage() {
         <section className="admin-panel">
           <header className="admin-panel-header">
             <div>
-              <span className="eyebrow">Directory</span>
-              <h3>Company users</h3>
+              <span className="eyebrow">Danh bạ</span>
+              <h3>Người dùng công ty</h3>
             </div>
             <button className="primary-button compact" type="button" onClick={newUser}>
-              <UserPlus size={16} /> Users moi
+              <UserPlus size={16} /> Người dùng mới
             </button>
           </header>
 
           <div className="search-field">
             <Search size={17} />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tim ten, email, phong ban" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm tên, email, phòng ban" />
           </div>
 
           <div className="user-table">
@@ -219,11 +219,11 @@ function AdminUsersPage() {
                   <strong>{user.fullName}</strong>
                   <span>{user.email}</span>
                 </div>
-                <span>{user.department || 'Chua co phong ban'}</span>
+                <span>{user.department || 'Chưa có phòng ban'}</span>
                 <span className={`status-chip ${user.isActive ? 'active' : 'inactive'}`}>
-                  {user.isActive ? 'Active' : 'Inactive'}
+                  {user.isActive ? 'Đang hoạt động' : 'Tạm khóa'}
                 </span>
-                {user.isSystemAdmin && <span className="role-chip">Admin</span>}
+                {user.isSystemAdmin && <span className="role-chip">Quản trị</span>}
               </button>
             ))}
           </div>
@@ -232,46 +232,46 @@ function AdminUsersPage() {
         <section className="admin-panel">
           <header className="admin-panel-header">
             <div>
-              <span className="eyebrow">{form.id ? 'Chinh sua' : 'Create'}</span>
-              <h3>{form.id ? 'Profile nguoi dung' : 'Tai khoan moi'}</h3>
+              <span className="eyebrow">{form.id ? 'Chỉnh sửa' : 'Tạo mới'}</span>
+              <h3>{form.id ? 'Hồ sơ người dùng' : 'Tài khoản mới'}</h3>
             </div>
           </header>
 
           <form className="admin-form stack" onSubmit={saveUser}>
-            <label>Full name<input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} /></label>
+            <label>Họ và tên<input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} /></label>
             <div className="form-grid two">
-              <label>Username<input value={form.userName} onChange={(e) => setForm({ ...form, userName: e.target.value })} /></label>
+              <label>Tên đăng nhập<input value={form.userName} onChange={(e) => setForm({ ...form, userName: e.target.value })} /></label>
               <label>Email<input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
             </div>
             {!form.id && (
-              <label>Password<input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></label>
+              <label>Mật khẩu<input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></label>
             )}
             <div className="form-grid two">
-              <label>Department<input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} /></label>
-              <label>Chuc danh<input value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} /></label>
+              <label>Phòng ban<input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} /></label>
+              <label>Chức danh<input value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} /></label>
             </div>
-            <label>Avatar URL<input value={form.avatarUrl} onChange={(e) => setForm({ ...form, avatarUrl: e.target.value })} /></label>
+            <label>URL ảnh đại diện<input value={form.avatarUrl} onChange={(e) => setForm({ ...form, avatarUrl: e.target.value })} /></label>
             <div className="switch-grid">
-              <label className="check-row"><input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} /> Active</label>
-              <label className="check-row"><input type="checkbox" checked={form.isSystemAdmin} onChange={(e) => setForm({ ...form, isSystemAdmin: e.target.checked })} /> Admin he thong</label>
+              <label className="check-row"><input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} /> Đang hoạt động</label>
+              <label className="check-row"><input type="checkbox" checked={form.isSystemAdmin} onChange={(e) => setForm({ ...form, isSystemAdmin: e.target.checked })} /> Quản trị hệ thống</label>
             </div>
             <button className="primary-button compact" type="submit" disabled={saving}>
-              <Save size={16} /> {saving ? 'Saving...' : 'Save user'}
+              <Save size={16} /> {saving ? 'Đang lưu...' : 'Lưu người dùng'}
             </button>
           </form>
 
           {selectedUser && (
             <div className="admin-tools">
               <div>
-                <strong>Account tools</strong>
-                <small>{selectedUser.ownedBoardCount} owned boards, {selectedUser.assignedCardCount} assigned cards</small>
+                <strong>Công cụ tài khoản</strong>
+                <small>{selectedUser.ownedBoardCount} bảng sở hữu, {selectedUser.assignedCardCount} thẻ được giao</small>
               </div>
               <button className="ghost-button compact" type="button" onClick={() => toggleStatus(selectedUser)}>
-                {selectedUser.isActive ? 'Deactivate' : 'Activate'}
+                {selectedUser.isActive ? 'Khóa tài khoản' : 'Mở khóa'}
               </button>
               <div className="inline-form">
-                <input type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} placeholder="Password moi" />
-                <button className="ghost-button compact" type="button" onClick={submitResetPassword}>Dat lai</button>
+                <input type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} placeholder="Mật khẩu mới" />
+                <button className="ghost-button compact" type="button" onClick={submitResetPassword}>Đặt lại</button>
               </div>
             </div>
           )}

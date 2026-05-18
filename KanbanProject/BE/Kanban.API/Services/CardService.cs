@@ -38,7 +38,7 @@ public class CardService : ICardService
         _db.Cards.Add(card);
         await _db.SaveChangesAsync();
 
-        AddActivity(card.BoardId, card.Id, userId, "CreateCard", $"Tạo card {card.Title}");
+        AddActivity(card.BoardId, card.Id, userId, "CreateCard", $"Tạo thẻ {card.Title}");
         AddAssignmentNotification(card, userId);
         await _db.SaveChangesAsync();
 
@@ -58,7 +58,7 @@ public class CardService : ICardService
         var card = await _db.Cards
             .Include(c => c.Labels)
             .FirstOrDefaultAsync(c => c.Id == cardId)
-            ?? throw new KeyNotFoundException("Không tìm thấy card.");
+            ?? throw new KeyNotFoundException("Không tìm thấy thẻ.");
 
         await BoardAccess.EnsureCanEditCardsAsync(_db, card.BoardId, userId);
         await BoardAccess.EnsureAssigneeInBoardAsync(_db, card.BoardId, request.AssigneeId);
@@ -79,7 +79,7 @@ public class CardService : ICardService
             ApplyLabels(card, request.Labels);
         }
 
-        AddActivity(card.BoardId, card.Id, userId, "UpdateCard", $"Cập nhật card {card.Title}");
+        AddActivity(card.BoardId, card.Id, userId, "UpdateCard", $"Cập nhật thẻ {card.Title}");
         if (oldAssigneeId != card.AssigneeId)
         {
             AddAssignmentNotification(card, userId);
@@ -91,7 +91,7 @@ public class CardService : ICardService
 
     public async Task<int> DeleteCardAsync(int userId, int cardId)
     {
-        var card = await _db.Cards.FindAsync(cardId) ?? throw new KeyNotFoundException("Không tìm thấy card.");
+        var card = await _db.Cards.FindAsync(cardId) ?? throw new KeyNotFoundException("Không tìm thấy thẻ.");
         await BoardAccess.EnsureCanEditCardsAsync(_db, card.BoardId, userId);
         var boardId = card.BoardId;
         _db.Cards.Remove(card);
@@ -101,20 +101,20 @@ public class CardService : ICardService
 
     public async Task<CardDetailDto> MoveCardAsync(int userId, int cardId, MoveCardRequest request)
     {
-        var card = await _db.Cards.FindAsync(cardId) ?? throw new KeyNotFoundException("Không tìm thấy card.");
+        var card = await _db.Cards.FindAsync(cardId) ?? throw new KeyNotFoundException("Không tìm thấy thẻ.");
         var targetColumn = await _db.BoardColumns.FindAsync(request.TargetColumnId)
             ?? throw new KeyNotFoundException("Không tìm thấy cột đích.");
 
         if (card.BoardId != targetColumn.BoardId)
         {
-            throw new InvalidOperationException("Không thể di chuyển card sang board khác.");
+            throw new InvalidOperationException("Không thể di chuyển thẻ sang bảng khác.");
         }
 
         await BoardAccess.EnsureCanEditCardsAsync(_db, card.BoardId, userId);
         card.ColumnId = request.TargetColumnId;
         card.Position = request.Position;
         card.UpdatedAt = DateTime.UtcNow;
-        AddActivity(card.BoardId, card.Id, userId, "MoveCard", $"Di chuyển card {card.Title}");
+        AddActivity(card.BoardId, card.Id, userId, "MoveCard", $"Di chuyển thẻ {card.Title}");
         await _db.SaveChangesAsync();
 
         return (await LoadCardAsync(cardId)).ToDetailDto();
@@ -131,13 +131,13 @@ public class CardService : ICardService
         var cards = await _db.Cards.Where(c => ids.Contains(c.Id)).ToListAsync();
         if (cards.Count != ids.Count)
         {
-            throw new KeyNotFoundException("Danh sách card không hợp lệ.");
+            throw new KeyNotFoundException("Danh sách thẻ không hợp lệ.");
         }
 
         var boardId = cards.First().BoardId;
         if (cards.Any(c => c.BoardId != boardId))
         {
-            throw new InvalidOperationException("Chỉ được sắp xếp card trong cùng board.");
+            throw new InvalidOperationException("Chỉ được sắp xếp thẻ trong cùng bảng.");
         }
 
         var columnIds = request.Cards.Select(c => c.ColumnId).Distinct().ToList();
@@ -159,19 +159,19 @@ public class CardService : ICardService
             card.UpdatedAt = DateTime.UtcNow;
         }
 
-        AddActivity(boardId, null, userId, "ReorderCards", "Sắp xếp lại card trong board");
+        AddActivity(boardId, null, userId, "ReorderCards", "Sắp xếp lại thẻ trong bảng");
         await _db.SaveChangesAsync();
         return boardId;
     }
 
     public async Task<CardDetailDto> ArchiveCardAsync(int userId, int cardId)
     {
-        var card = await _db.Cards.FindAsync(cardId) ?? throw new KeyNotFoundException("Không tìm thấy card.");
+        var card = await _db.Cards.FindAsync(cardId) ?? throw new KeyNotFoundException("Không tìm thấy thẻ.");
         await BoardAccess.EnsureCanEditCardsAsync(_db, card.BoardId, userId);
 
         card.IsArchived = true;
         card.UpdatedAt = DateTime.UtcNow;
-        AddActivity(card.BoardId, card.Id, userId, "ArchiveCard", $"Lưu trữ card {card.Title}");
+        AddActivity(card.BoardId, card.Id, userId, "ArchiveCard", $"Lưu trữ thẻ {card.Title}");
         await _db.SaveChangesAsync();
 
         return (await LoadCardAsync(cardId)).ToDetailDto();
@@ -179,7 +179,7 @@ public class CardService : ICardService
 
     public async Task<ChecklistItemDto> AddChecklistItemAsync(int userId, int cardId, AddChecklistItemRequest request)
     {
-        var card = await _db.Cards.FindAsync(cardId) ?? throw new KeyNotFoundException("Không tìm thấy card.");
+        var card = await _db.Cards.FindAsync(cardId) ?? throw new KeyNotFoundException("Không tìm thấy thẻ.");
         await BoardAccess.EnsureCanEditCardsAsync(_db, card.BoardId, userId);
 
         var item = new ChecklistItem
@@ -190,7 +190,7 @@ public class CardService : ICardService
         };
 
         _db.ChecklistItems.Add(item);
-        AddActivity(card.BoardId, card.Id, userId, "AddChecklist", $"Thêm checklist vào card {card.Title}");
+        AddActivity(card.BoardId, card.Id, userId, "AddChecklist", $"Thêm checklist vào thẻ {card.Title}");
         await _db.SaveChangesAsync();
 
         return item.ToDto();
@@ -207,7 +207,7 @@ public class CardService : ICardService
         item.Content = request.Content.Trim();
         item.IsCompleted = request.IsCompleted;
         item.Position = request.Position;
-        AddActivity(item.Card.BoardId, item.CardId, userId, "UpdateChecklist", $"Cập nhật checklist của card {item.Card.Title}");
+        AddActivity(item.Card.BoardId, item.CardId, userId, "UpdateChecklist", $"Cập nhật checklist của thẻ {item.Card.Title}");
         await _db.SaveChangesAsync();
 
         return item.ToDto();
@@ -235,7 +235,7 @@ public class CardService : ICardService
             .Include(c => c.ChecklistItems)
             .Include(c => c.ActivityLogs).ThenInclude(a => a.User)
             .FirstOrDefaultAsync(c => c.Id == cardId)
-            ?? throw new KeyNotFoundException("Không tìm thấy card.");
+            ?? throw new KeyNotFoundException("Không tìm thấy thẻ.");
     }
 
     private async Task<int> NextPositionAsync(int columnId)
@@ -293,8 +293,8 @@ public class CardService : ICardService
         _db.Notifications.Add(new Notification
         {
             UserId = card.AssigneeId.Value,
-            Title = "Bạn được gán vào card",
-            Message = $"Bạn vừa được gán vào card \"{card.Title}\".",
+            Title = "Bạn được gán vào thẻ",
+            Message = $"Bạn vừa được gán vào thẻ \"{card.Title}\".",
             Type = "Assignment"
         });
     }
