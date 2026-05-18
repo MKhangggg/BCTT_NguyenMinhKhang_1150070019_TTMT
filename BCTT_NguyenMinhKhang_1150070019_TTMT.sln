@@ -1,0 +1,60 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "KanbanProject", "KanbanProject", "{CE80759F-6A3A-788A-8BFC-13626C7852C5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "BE", "BE", "{9A8520B5-87BB-CEF2-738D-40D41F35479B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kanban.API", "KanbanProject\BE\Kanban.API\Kanban.API.csproj", "{DA094B46-E41C-E40A-69E5-60B80D28F7EA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kanban.API.IntegrationTests", "KanbanProject\BE\Kanban.API.IntegrationTests\Kanban.API.IntegrationTests.csproj", "{A7E9C35D-56E0-4DA8-B8D5-393EE32671D5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DA094B46-E41C-E40A-69E5-60B80D28F7EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA094B46-E41C-E40A-69E5-60B80D28F7EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA094B46-E41C-E40A-69E5-60B80D28F7EA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DA094B46-E41C-E40A-69E5-60B80D28F7EA}.Debug|x64.Build.0 = Debug|Any CPU
+		{DA094B46-E41C-E40A-69E5-60B80D28F7EA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DA094B46-E41C-E40A-69E5-60B80D28F7EA}.Debug|x86.Build.0 = Debug|Any CPU
+		{DA094B46-E41C-E40A-69E5-60B80D28F7EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA094B46-E41C-E40A-69E5-60B80D28F7EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA094B46-E41C-E40A-69E5-60B80D28F7EA}.Release|x64.ActiveCfg = Release|Any CPU
+		{DA094B46-E41C-E40A-69E5-60B80D28F7EA}.Release|x64.Build.0 = Release|Any CPU
+		{DA094B46-E41C-E40A-69E5-60B80D28F7EA}.Release|x86.ActiveCfg = Release|Any CPU
+		{DA094B46-E41C-E40A-69E5-60B80D28F7EA}.Release|x86.Build.0 = Release|Any CPU
+		{A7E9C35D-56E0-4DA8-B8D5-393EE32671D5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7E9C35D-56E0-4DA8-B8D5-393EE32671D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7E9C35D-56E0-4DA8-B8D5-393EE32671D5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A7E9C35D-56E0-4DA8-B8D5-393EE32671D5}.Debug|x64.Build.0 = Debug|Any CPU
+		{A7E9C35D-56E0-4DA8-B8D5-393EE32671D5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A7E9C35D-56E0-4DA8-B8D5-393EE32671D5}.Debug|x86.Build.0 = Debug|Any CPU
+		{A7E9C35D-56E0-4DA8-B8D5-393EE32671D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7E9C35D-56E0-4DA8-B8D5-393EE32671D5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7E9C35D-56E0-4DA8-B8D5-393EE32671D5}.Release|x64.ActiveCfg = Release|Any CPU
+		{A7E9C35D-56E0-4DA8-B8D5-393EE32671D5}.Release|x64.Build.0 = Release|Any CPU
+		{A7E9C35D-56E0-4DA8-B8D5-393EE32671D5}.Release|x86.ActiveCfg = Release|Any CPU
+		{A7E9C35D-56E0-4DA8-B8D5-393EE32671D5}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{9A8520B5-87BB-CEF2-738D-40D41F35479B} = {CE80759F-6A3A-788A-8BFC-13626C7852C5}
+		{DA094B46-E41C-E40A-69E5-60B80D28F7EA} = {9A8520B5-87BB-CEF2-738D-40D41F35479B}
+		{A7E9C35D-56E0-4DA8-B8D5-393EE32671D5} = {9A8520B5-87BB-CEF2-738D-40D41F35479B}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E0CDB80B-C2A8-4289-BD75-B1AC8B13F86F}
+	EndGlobalSection
+EndGlobal
