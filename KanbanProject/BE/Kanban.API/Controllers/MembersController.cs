@@ -28,6 +28,12 @@ public class MembersController : ApiControllerBase
         return Ok(await _memberService.AddMemberAsync(CurrentUserId, boardId, request));
     }
 
+    [HttpPost("organization-unit")]
+    public async Task<ActionResult<List<BoardMemberDto>>> AddOrganizationUnitMembers(int boardId, AddOrganizationUnitMembersRequest request)
+    {
+        return Ok(await _memberService.AddOrganizationUnitMembersAsync(CurrentUserId, boardId, request));
+    }
+
     [HttpPut("{memberId:int}/role")]
     public async Task<ActionResult<BoardMemberDto>> UpdateRole(int boardId, int memberId, UpdateMemberRoleRequest request)
     {

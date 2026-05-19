@@ -7,6 +7,8 @@ public class Notification
     public string Title { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
     public string Type { get; set; } = "Info";
+    public int? BoardId { get; set; }
+    public int? CardId { get; set; }
     public bool IsRead { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

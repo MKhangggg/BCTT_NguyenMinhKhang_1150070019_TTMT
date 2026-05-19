@@ -1,20 +1,38 @@
-import { X, UserPlus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { Building2, X, UserPlus, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import Avatar from '../common/Avatar.jsx'
 import Notice from '../common/Notice.jsx'
 import { getErrorMessage } from '../../services/api'
 import { memberService } from '../../services/memberService'
+import { organizationService } from '../../services/organizationService'
 
 const roleOptions = [
-  { value: 'Admin', label: 'Quản trị bảng' },
+  { value: 'Admin', label: 'Quản trị dự án' },
   { value: 'Member', label: 'Thành viên' },
   { value: 'Viewer', label: 'Người xem' },
 ]
 
 function MembersModal({ boardId, member: members = [], onClose, onChanged }) {
   const [form, setForm] = useState({ email: '', role: 'Member' })
+  const [unitForm, setUnitForm] = useState({ organizationUnitId: '', role: 'Member' })
+  const [organizationUnits, setOrganizationUnits] = useState([])
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    let mounted = true
+    organizationService.getUnitOptions()
+      .then((items) => {
+        if (mounted) setOrganizationUnits(items)
+      })
+      .catch(() => {
+        if (mounted) setOrganizationUnits([])
+      })
+
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const invite = async (event) => {
     event.preventDefault()
@@ -24,6 +42,26 @@ function MembersModal({ boardId, member: members = [], onClose, onChanged }) {
       setError('')
       await memberService.addMember(boardId, form)
       setForm({ email: '', role: 'Member' })
+      onChanged()
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const inviteUnit = async (event) => {
+    event.preventDefault()
+    if (!unitForm.organizationUnitId) return
+    try {
+      setSaving(true)
+      setError('')
+      await memberService.addOrganizationUnitMembers(boardId, {
+        organizationUnitId: Number(unitForm.organizationUnitId),
+        role: unitForm.role,
+        promoteLeadsToAdmin: true,
+      })
+      setUnitForm({ organizationUnitId: '', role: 'Member' })
       onChanged()
     } catch (err) {
       setError(getErrorMessage(err))
@@ -56,7 +94,7 @@ function MembersModal({ boardId, member: members = [], onClose, onChanged }) {
     <div className="modal-backdrop">
       <section className="modal-panel member-modal">
         <header className="modal-header">
-          <h2>Thành viên bảng</h2>
+          <h2>Thành viên dự án</h2>
           <button className="icon-button" type="button" onClick={onClose} title="Đóng"><X size={18} /></button>
         </header>
 
@@ -67,13 +105,30 @@ function MembersModal({ boardId, member: members = [], onClose, onChanged }) {
             type="email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            placeholder="thanhvien@email.com"
+            placeholder="Email thành viên"
           />
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
             {roleOptions.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
           </select>
           <button className="primary-button compact" type="submit" disabled={saving}>
-            <UserPlus size={16} /> Mời
+            <UserPlus size={16} /> Thêm vào dự án
+          </button>
+        </form>
+
+        <form className="member-form organization-invite-form" onSubmit={inviteUnit}>
+          <select value={unitForm.organizationUnitId} onChange={(e) => setUnitForm({ ...unitForm, organizationUnitId: e.target.value })}>
+            <option value="">Thêm cả phòng ban/team</option>
+            {organizationUnits.map((unit) => (
+              <option key={unit.id} value={unit.id}>
+                {unit.type === 'Team' ? 'Team' : 'Phòng ban'} · {unit.name} ({unit.memberCount})
+              </option>
+            ))}
+          </select>
+          <select value={unitForm.role} onChange={(e) => setUnitForm({ ...unitForm, role: e.target.value })}>
+            {roleOptions.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
+          </select>
+          <button className="ghost-button compact" type="submit" disabled={saving || !unitForm.organizationUnitId}>
+            <Building2 size={16} /> Thêm team
           </button>
         </form>
 

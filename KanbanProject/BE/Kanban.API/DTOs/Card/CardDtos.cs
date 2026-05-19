@@ -58,4 +58,4 @@ public record MoveCardRequest(int TargetColumnId, int Position);
 
 public record ReorderCardItem(int CardId, int ColumnId, int Position);
 
-public record ReorderCardsRequest(List<ReorderCardItem> Cards);
+public record ReorderCardsRequest(List<ReorderCardItem> Cards, int? MovedCardId = null);

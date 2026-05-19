@@ -1,9 +1,13 @@
-import { Calendar, Globe2, KanbanSquare, Lock, Users } from 'lucide-react'
+import { ArrowRight, Calendar, Clock3, FileText, Globe2, KanbanSquare, Lock, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
-function BoardCard({ board }) {
+function BoardCard({ board, index = 0 }) {
+  const memberCount = Number(board.memberCount || 0)
+  const progress = `${Math.min(100, Math.max(18, memberCount * 18))}%`
+  const createdAt = board.createdAt ? new Date(board.createdAt) : null
+
   return (
-    <Link className="board-card" to={`/boards/${board.id}`}>
+    <Link className="board-card" to={`/boards/${board.id}`} style={{ '--reveal-delay': `${index * 70}ms`, '--board-progress': progress }}>
       <div className="board-card-top">
         <span className="board-icon"><KanbanSquare size={18} /></span>
         <span className="status-pill">
@@ -11,14 +15,23 @@ function BoardCard({ board }) {
           {board.isPublic ? 'Công khai' : 'Riêng tư'}
         </span>
       </div>
+      <span className="project-code-chip">{board.projectCode || `PRJ-${board.id}`}</span>
       <h2>{board.name}</h2>
-      <p>{board.description || 'Chưa có mô tả'}</p>
+      {board.organizationUnitName && (
+        <span className="board-unit-chip">{board.organizationUnitType === 'Team' ? 'Team' : 'Phòng ban'} · {board.organizationUnitName}</span>
+      )}
+      <p>{board.summary || board.description || 'Chưa có tóm tắt dự án'}</p>
       <div className="board-progress">
-        <span style={{ width: `${Math.min(100, Math.max(18, board.memberCount * 18))}%` }} />
+        <span />
+      </div>
+      <div className="board-card-signals">
+        <span><Users size={14} /> {memberCount || 1} người</span>
+        <span><FileText size={14} /> {board.documentCount || 0} tài liệu</span>
+        <span><Clock3 size={14} /> Sẵn sàng</span>
       </div>
       <div className="board-meta">
-        <span><Users size={15} /> {board.memberCount} thành viên</span>
-        <span><Calendar size={15} /> {new Date(board.createdAt).toLocaleDateString()}</span>
+        <span><Calendar size={15} /> {createdAt?.toLocaleDateString() || 'Chưa rõ ngày'}</span>
+        <strong>Mở bảng <ArrowRight size={15} /></strong>
       </div>
     </Link>
   )

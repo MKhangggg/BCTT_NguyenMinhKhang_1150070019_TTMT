@@ -9,12 +9,16 @@ public class User
     public string PasswordHash { get; set; } = string.Empty;
     public string? AvatarUrl { get; set; }
     public string? Department { get; set; }
+    public int? OrganizationUnitId { get; set; }
     public string? JobTitle { get; set; }
     public bool IsSystemAdmin { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public bool IsActive { get; set; } = true;
 
+    public OrganizationUnit? OrganizationUnit { get; set; }
+    public ICollection<OrganizationUnit> ManagedOrganizationUnits { get; set; } = new List<OrganizationUnit>();
+    public ICollection<OrganizationUnitMember> OrganizationUnitMemberships { get; set; } = new List<OrganizationUnitMember>();
     public ICollection<Board> OwnedBoards { get; set; } = new List<Board>();
     public ICollection<BoardMember> BoardMembers { get; set; } = new List<BoardMember>();
     public ICollection<Card> AssignedCards { get; set; } = new List<Card>();

@@ -17,7 +17,7 @@ public class MemberService : IMemberService
 
     public async Task<List<BoardMemberDto>> GetMembersAsync(int userId, int boardId)
     {
-        await BoardAccess.EnsureMemberAsync(_db, boardId, userId);
+        await BoardAccess.EnsureCanViewBoardAsync(_db, boardId, userId);
         var members = await _db.BoardMembers
             .AsNoTracking()
             .Include(m => m.User)
@@ -43,7 +43,7 @@ public class MemberService : IMemberService
 
         if (await _db.BoardMembers.AnyAsync(m => m.BoardId == boardId && m.UserId == user.Id))
         {
-            throw new InvalidOperationException("Người dùng đã là thành viên của bảng.");
+            throw new InvalidOperationException("Người dùng đã là thành viên của dự án.");
         }
 
         var member = new BoardMember
@@ -57,20 +57,77 @@ public class MemberService : IMemberService
         _db.Notifications.Add(new Notification
         {
             UserId = user.Id,
-            Title = "Bạn được mời vào bảng",
-            Message = "Bạn vừa được thêm vào một bảng Kanban.",
-            Type = "BoardInvite"
+            Title = "Bạn được thêm vào dự án",
+            Message = "Bạn vừa được thêm vào một dự án Kanban.",
+            Type = "BoardInvite",
+            BoardId = boardId
         });
         _db.ActivityLogs.Add(new ActivityLog
         {
             BoardId = boardId,
             UserId = userId,
             Action = "AddMember",
-            Description = $"Thêm {user.Email} vào bảng"
+            Description = $"Thêm {user.Email} vào dự án"
         });
         await _db.SaveChangesAsync();
 
         return (await _db.BoardMembers.AsNoTracking().Include(m => m.User).FirstAsync(m => m.Id == member.Id)).ToDto();
+    }
+
+    public async Task<List<BoardMemberDto>> AddOrganizationUnitMembersAsync(int userId, int boardId, AddOrganizationUnitMembersRequest request)
+    {
+        await BoardAccess.EnsureCanManageBoardAsync(_db, boardId, userId);
+        if (request.Role == BoardRole.Owner)
+        {
+            throw new InvalidOperationException("Không thể thêm cả team bằng vai trò chủ sở hữu.");
+        }
+
+        var unit = await _db.OrganizationUnits
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Id == request.OrganizationUnitId && item.IsActive)
+            ?? throw new KeyNotFoundException("Không tìm thấy phòng ban hoặc team đang hoạt động.");
+        var existingUserIds = await _db.BoardMembers
+            .Where(member => member.BoardId == boardId)
+            .Select(member => member.UserId)
+            .ToListAsync();
+        var existing = existingUserIds.ToHashSet();
+        var unitMembers = await GetOrganizationUnitUsersAsync(request.OrganizationUnitId);
+        var addedCount = 0;
+
+        foreach (var unitMember in unitMembers.Where(member => !existing.Contains(member.UserId)))
+        {
+            _db.BoardMembers.Add(new BoardMember
+            {
+                BoardId = boardId,
+                UserId = unitMember.UserId,
+                Role = request.PromoteLeadsToAdmin && unitMember.IsLead ? BoardRole.Admin : request.Role
+            });
+            _db.Notifications.Add(new Notification
+            {
+                UserId = unitMember.UserId,
+                Title = "Bạn được thêm vào dự án",
+                Message = $"Bạn vừa được thêm vào dự án theo {unit.Name}.",
+                Type = "BoardInvite",
+                BoardId = boardId
+            });
+            addedCount++;
+        }
+
+        if (addedCount == 0)
+        {
+            throw new InvalidOperationException("Các thành viên của phòng ban/team này đã có trong dự án.");
+        }
+
+        _db.ActivityLogs.Add(new ActivityLog
+        {
+            BoardId = boardId,
+            UserId = userId,
+            Action = "AddOrganizationUnitMembers",
+            Description = $"Thêm {addedCount} thành viên từ {unit.Name}"
+        });
+        await _db.SaveChangesAsync();
+
+        return await GetMembersAsync(userId, boardId);
     }
 
     public async Task<BoardMemberDto> UpdateRoleAsync(int userId, int boardId, int memberId, UpdateMemberRoleRequest request)
@@ -111,4 +168,67 @@ public class MemberService : IMemberService
         _db.BoardMembers.Remove(member);
         await _db.SaveChangesAsync();
     }
+
+    private async Task<List<UnitUser>> GetOrganizationUnitUsersAsync(int organizationUnitId)
+    {
+        var units = await _db.OrganizationUnits
+            .AsNoTracking()
+            .Where(unit => unit.IsActive)
+            .Select(unit => new UnitNode(unit.Id, unit.ParentId, unit.ManagerId))
+            .ToListAsync();
+        var unitIds = CollectUnitAndChildren(organizationUnitId, units).ToHashSet();
+
+        var members = await _db.OrganizationUnitMembers
+            .AsNoTracking()
+            .Include(member => member.User)
+            .Where(member => unitIds.Contains(member.OrganizationUnitId) && member.User.IsActive)
+            .Select(member => new
+            {
+                member.UserId,
+                IsLead = member.Role == OrganizationUnitMemberRole.Lead
+            })
+            .ToListAsync();
+
+        var result = members
+            .GroupBy(member => member.UserId)
+            .ToDictionary(group => group.Key, group => group.Any(member => member.IsLead));
+        var managerIds = units
+            .Where(unit => unitIds.Contains(unit.Id) && unit.ManagerId is not null)
+            .Select(unit => unit.ManagerId!.Value)
+            .ToList();
+        var activeManagerIds = await _db.Users
+            .AsNoTracking()
+            .Where(user => managerIds.Contains(user.Id) && user.IsActive)
+            .Select(user => user.Id)
+            .ToListAsync();
+
+        foreach (var managerId in activeManagerIds)
+        {
+            result[managerId] = true;
+        }
+
+        return result.Select(item => new UnitUser(item.Key, item.Value)).ToList();
+    }
+
+    private static IEnumerable<int> CollectUnitAndChildren(int rootUnitId, IEnumerable<UnitNode> units)
+    {
+        var unitList = units.ToList();
+        var queue = new Queue<int>();
+        queue.Enqueue(rootUnitId);
+
+        while (queue.Count > 0)
+        {
+            var currentId = queue.Dequeue();
+            yield return currentId;
+
+            foreach (var child in unitList.Where(unit => unit.ParentId == currentId))
+            {
+                queue.Enqueue(child.Id);
+            }
+        }
+    }
+
+    private sealed record UnitNode(int Id, int? ParentId, int? ManagerId);
+
+    private sealed record UnitUser(int UserId, bool IsLead);
 }

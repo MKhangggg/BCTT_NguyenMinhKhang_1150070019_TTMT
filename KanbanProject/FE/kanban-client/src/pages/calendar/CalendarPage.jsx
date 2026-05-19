@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Clock3, Search } from 'lucide-react'
+import { AlertTriangle, ArrowRight, CalendarDays, ChevronLeft, ChevronRight, Clock3, Search, Target } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Loading from '../../components/common/Loading'
 import Notice from '../../components/common/Notice'
 import StatCard from '../../components/common/StatCard'
+import EmptyState from '../../components/common/EmptyState.jsx'
 import { getErrorMessage } from '../../services/api'
 import { boardService } from '../../services/boardService'
 
@@ -179,6 +180,10 @@ function CalendarPage() {
     return filteredCards.filter((card) => getDueStatus(card.dueDate, todayStart) === 'today').length
   }, [filteredCards])
 
+  const nextDueCard = useMemo(() => filteredCards.find((card) => (
+    getDueStatus(card.dueDate, getStartOfDayTimestamp(new Date())) !== 'overdue'
+  )), [filteredCards])
+
   const monthTitle = useMemo(
     () => monthCursor.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
     [monthCursor]
@@ -216,10 +221,19 @@ function CalendarPage() {
 
   return (
     <section className="page stack">
-      <div className="section-heading">
+      <div className="page-hero compact-hero">
         <div>
+          <span className="eyebrow">Lịch công việc</span>
           <h2>Lịch</h2>
           <p>Theo dõi hạn thẻ trên tất cả bảng trong một lịch chung.</p>
+        </div>
+        <CalendarDays size={42} />
+      </div>
+
+      <div className="section-heading">
+        <div>
+          <span className="eyebrow">Điều hướng</span>
+          <h2>{monthTitle}</h2>
         </div>
         <button type="button" className="ghost-button compact" onClick={loadCalendar}>
           Làm mới
@@ -233,6 +247,24 @@ function CalendarPage() {
         <StatCard icon={<AlertTriangle size={18} />} label="Quá hạn" value={overdueCount} tone="red" />
         <StatCard icon={<Clock3 size={18} />} label="Hạn hôm nay" value={todayCount} tone="amber" />
       </div>
+
+      <section className="calendar-focus-panel">
+        <span><Target size={20} /></span>
+        <div>
+          <span className="eyebrow">Mốc tiếp theo</span>
+          <h3>{nextDueCard ? nextDueCard.title : 'Chưa có hạn sắp tới'}</h3>
+          <p>
+            {nextDueCard
+              ? `${nextDueCard.boardName} / ${formatDueDateTime(nextDueCard.dueDate)}`
+              : 'Thêm hạn cho thẻ để lịch tự động gợi ý mốc cần chú ý.'}
+          </p>
+        </div>
+        {nextDueCard && (
+          <Link to={`/boards/${nextDueCard.boardId}`}>
+            Mở bảng <ArrowRight size={15} />
+          </Link>
+        )}
+      </section>
 
       {loading ? (
         <Loading label="Đang tải lịch..." />
@@ -352,10 +384,11 @@ function CalendarPage() {
 
             <div className="agenda-list">
               {selectedDateCards.length === 0 ? (
-                <div className="empty-state">
-                  <CalendarDays size={30} />
-                  <p>Không có thẻ đến hạn trong ngày này với bộ lọc hiện tại.</p>
-                </div>
+                <EmptyState
+                  icon={<CalendarDays size={24} />}
+                  title="Không có thẻ đến hạn"
+                  description="Ngày này chưa có thẻ phù hợp với bộ lọc hiện tại."
+                />
               ) : (
                 selectedDateCards.map((card) => {
                   const status = getDueStatus(card.dueDate, todayStart)

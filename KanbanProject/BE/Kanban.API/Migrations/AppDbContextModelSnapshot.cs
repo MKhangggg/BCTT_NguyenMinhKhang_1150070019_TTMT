@@ -84,13 +84,26 @@ namespace Kanban.API.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("nvarchar(160)");
 
+                    b.Property<int?>("OrganizationUnitId")
+                        .HasColumnType("int");
+
                     b.Property<int>("OwnerId")
                         .HasColumnType("int");
+
+                    b.Property<string>("ProjectCode")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganizationUnitId");
 
                     b.HasIndex("OwnerId");
 
@@ -327,6 +340,12 @@ namespace Kanban.API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("BoardId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CardId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -355,6 +374,127 @@ namespace Kanban.API.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("Kanban.API.Models.OrganizationUnit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("ManagerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("nvarchar(160)");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("ManagerId");
+
+                    b.HasIndex("ParentId");
+
+                    b.ToTable("OrganizationUnits");
+                });
+
+            modelBuilder.Entity("Kanban.API.Models.OrganizationUnitMember", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("OrganizationUnitId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("OrganizationUnitId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("OrganizationUnitMembers");
+                });
+
+            modelBuilder.Entity("Kanban.API.Models.ProjectDocument", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BoardId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(180)
+                        .HasColumnType("nvarchar(180)");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BoardId");
+
+                    b.ToTable("ProjectDocuments");
                 });
 
             modelBuilder.Entity("Kanban.API.Models.User", b =>
@@ -395,6 +535,9 @@ namespace Kanban.API.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
 
+                    b.Property<int?>("OrganizationUnitId")
+                        .HasColumnType("int");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -411,6 +554,8 @@ namespace Kanban.API.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("OrganizationUnitId");
 
                     b.HasIndex("UserName")
                         .IsUnique();
@@ -446,11 +591,18 @@ namespace Kanban.API.Migrations
 
             modelBuilder.Entity("Kanban.API.Models.Board", b =>
                 {
+                    b.HasOne("Kanban.API.Models.OrganizationUnit", "OrganizationUnit")
+                        .WithMany("Boards")
+                        .HasForeignKey("OrganizationUnitId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("Kanban.API.Models.User", "Owner")
                         .WithMany("OwnedBoards")
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("OrganizationUnit");
 
                     b.Navigation("Owner");
                 });
@@ -571,6 +723,63 @@ namespace Kanban.API.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Kanban.API.Models.OrganizationUnit", b =>
+                {
+                    b.HasOne("Kanban.API.Models.User", "Manager")
+                        .WithMany("ManagedOrganizationUnits")
+                        .HasForeignKey("ManagerId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Kanban.API.Models.OrganizationUnit", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Manager");
+
+                    b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("Kanban.API.Models.OrganizationUnitMember", b =>
+                {
+                    b.HasOne("Kanban.API.Models.OrganizationUnit", "OrganizationUnit")
+                        .WithMany("Members")
+                        .HasForeignKey("OrganizationUnitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Kanban.API.Models.User", "User")
+                        .WithMany("OrganizationUnitMemberships")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("OrganizationUnit");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Kanban.API.Models.ProjectDocument", b =>
+                {
+                    b.HasOne("Kanban.API.Models.Board", "Board")
+                        .WithMany("Documents")
+                        .HasForeignKey("BoardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Board");
+                });
+
+            modelBuilder.Entity("Kanban.API.Models.User", b =>
+                {
+                    b.HasOne("Kanban.API.Models.OrganizationUnit", "OrganizationUnit")
+                        .WithMany("PrimaryUsers")
+                        .HasForeignKey("OrganizationUnitId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("OrganizationUnit");
+                });
+
             modelBuilder.Entity("Kanban.API.Models.Board", b =>
                 {
                     b.Navigation("ActivityLogs");
@@ -578,6 +787,8 @@ namespace Kanban.API.Migrations
                     b.Navigation("Cards");
 
                     b.Navigation("Columns");
+
+                    b.Navigation("Documents");
 
                     b.Navigation("Members");
                 });
@@ -598,6 +809,17 @@ namespace Kanban.API.Migrations
                     b.Navigation("Labels");
                 });
 
+            modelBuilder.Entity("Kanban.API.Models.OrganizationUnit", b =>
+                {
+                    b.Navigation("Boards");
+
+                    b.Navigation("Children");
+
+                    b.Navigation("Members");
+
+                    b.Navigation("PrimaryUsers");
+                });
+
             modelBuilder.Entity("Kanban.API.Models.User", b =>
                 {
                     b.Navigation("ActivityLogs");
@@ -610,7 +832,11 @@ namespace Kanban.API.Migrations
 
                     b.Navigation("CreatedCards");
 
+                    b.Navigation("ManagedOrganizationUnits");
+
                     b.Navigation("Notifications");
+
+                    b.Navigation("OrganizationUnitMemberships");
 
                     b.Navigation("OwnedBoards");
                 });

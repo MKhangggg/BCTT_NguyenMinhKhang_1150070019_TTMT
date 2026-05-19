@@ -4,6 +4,8 @@ function ReportPanel({ report }) {
   if (!report) return null
 
   const priorityMap = Object.fromEntries(report.cardsByPriority.map((item) => [item.priority, item.count]))
+  const maxColumnCount = Math.max(...report.cardsByColumn.map((column) => column.count), 1)
+  const totalPriorityCards = Math.max(...Object.values(priorityMap), 1)
   const priorityLabels = {
     Low: 'Thấp',
     Medium: 'Trung bình',
@@ -20,8 +22,9 @@ function ReportPanel({ report }) {
       <section className="report-section">
         <h3>Thẻ theo cột</h3>
         {report.cardsByColumn.map((column) => (
-          <div className="report-line" key={column.columnId}>
+          <div className="report-line report-line-bar" key={column.columnId}>
             <span>{column.columnName}</span>
+            <div><i style={{ width: `${Math.max(6, (column.count / maxColumnCount) * 100)}%` }} /></div>
             <strong>{column.count}</strong>
           </div>
         ))}
@@ -30,8 +33,9 @@ function ReportPanel({ report }) {
       <section className="report-section">
         <h3>Thẻ theo mức ưu tiên</h3>
         {['Low', 'Medium', 'High'].map((priority) => (
-          <div className="report-line" key={priority}>
+          <div className="report-line report-line-bar" key={priority}>
             <span><CircleDot size={14} /> {priorityLabels[priority]}</span>
+            <div><i className={`priority-${priority.toLowerCase()}`} style={{ width: `${Math.max(6, ((priorityMap[priority] || 0) / totalPriorityCards) * 100)}%` }} /></div>
             <strong>{priorityMap[priority] || 0}</strong>
           </div>
         ))}

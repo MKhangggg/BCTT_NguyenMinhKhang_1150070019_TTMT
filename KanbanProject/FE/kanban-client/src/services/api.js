@@ -100,13 +100,22 @@ api.interceptors.response.use(
 
 export const authExpiredEvent = AUTH_EXPIRED_EVENT
 
-export const getErrorMessage = (error) => {
+export const getErrorMessage = (error, { includeRequestId = false } = {}) => {
   const apiError = extractApiError(error)
-  if (!apiError.requestId) {
-    return apiError.message
+
+  if (!apiError.status) {
+    return 'Không kết nối được máy chủ. Bạn kiểm tra lại backend hoặc mạng rồi thử lại nhé.'
   }
 
-  return `${apiError.message} (requestId: ${apiError.requestId})`
+  if (apiError.status >= 500) {
+    return 'Hệ thống đang gặp sự cố tạm thời. Vui lòng thử lại sau ít phút.'
+  }
+
+  if (includeRequestId && apiError.requestId) {
+    return `${apiError.message} (requestId: ${apiError.requestId})`
+  }
+
+  return apiError.message
 }
 
 export default api

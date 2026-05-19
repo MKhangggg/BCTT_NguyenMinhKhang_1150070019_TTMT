@@ -67,6 +67,8 @@ export const formatBoardRealtimeNotification = (event) => {
     title: actionLabels[event?.action] || 'Bảng vừa có thay đổi',
     message: `Bảng #${event?.boardId || ''} được cập nhật theo thời gian thực.`,
     type: event?.action || 'Realtime',
+    boardId: event?.boardId || null,
+    cardId: event?.data?.cardId || event?.data?.MovedCardId || event?.data?.movedCardId || null,
     isRead: false,
     isRealtime: true,
     createdAt: event?.changedAtUtc || new Date().toISOString(),

@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Kanban.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = "SystemAdmin")]
 [Route("api/admin")]
 public class AdminController : ApiControllerBase
 {

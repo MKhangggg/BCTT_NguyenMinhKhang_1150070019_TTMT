@@ -95,25 +95,50 @@ public static class MappingExtensions
     {
         return new BoardSummaryDto(
             board.Id,
+            board.ProjectCode,
             board.Name,
             board.Description,
+            board.Summary,
             board.OwnerId,
+            board.OrganizationUnitId,
+            board.OrganizationUnit?.Code,
+            board.OrganizationUnit?.Name,
+            board.OrganizationUnit?.Type.ToString(),
             board.IsPublic,
             board.Members.Count,
+            board.Documents.Count,
             board.CreatedAt,
             board.UpdatedAt);
+    }
+
+    public static ProjectDocumentDto ToDto(this ProjectDocument document)
+    {
+        return new ProjectDocumentDto(
+            document.Id,
+            document.BoardId,
+            document.Title,
+            document.Description,
+            document.Url,
+            document.CreatedAt);
     }
 
     public static BoardDetailDto ToDetailDto(this Board board)
     {
         return new BoardDetailDto(
             board.Id,
+            board.ProjectCode,
             board.Name,
             board.Description,
+            board.Summary,
             board.OwnerId,
+            board.OrganizationUnitId,
+            board.OrganizationUnit?.Code,
+            board.OrganizationUnit?.Name,
+            board.OrganizationUnit?.Type.ToString(),
             board.IsPublic,
             board.CreatedAt,
             board.UpdatedAt,
+            board.Documents.OrderByDescending(d => d.CreatedAt).Select(d => d.ToDto()).ToList(),
             board.Members.OrderBy(m => m.Role).ThenBy(m => m.User.FullName).Select(m => m.ToDto()).ToList(),
             board.Columns.OrderBy(c => c.Position).Select(c => c.ToDto()).ToList());
     }
@@ -151,6 +176,8 @@ public static class MappingExtensions
             notification.Message,
             notification.Type,
             notification.IsRead,
-            notification.CreatedAt);
+            notification.CreatedAt,
+            notification.BoardId,
+            notification.CardId);
     }
 }

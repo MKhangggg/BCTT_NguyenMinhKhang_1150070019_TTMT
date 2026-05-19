@@ -7,6 +7,9 @@ public record AdminUserDto(
     string Email,
     string? AvatarUrl,
     string? Department,
+    int? OrganizationUnitId,
+    string? OrganizationUnitCode,
+    string? OrganizationUnitName,
     string? JobTitle,
     bool IsSystemAdmin,
     bool IsActive,
@@ -22,6 +25,7 @@ public record CreateUserByAdminRequest(
     string Email,
     string Password,
     string? Department,
+    int? OrganizationUnitId,
     string? JobTitle,
     bool IsSystemAdmin,
     bool IsActive);
@@ -32,6 +36,7 @@ public record UpdateUserByAdminRequest(
     string Email,
     string? AvatarUrl,
     string? Department,
+    int? OrganizationUnitId,
     string? JobTitle,
     bool IsSystemAdmin,
     bool IsActive);
@@ -45,6 +50,8 @@ public record AdminOverviewDto(
     int ActiveUsers,
     int InactiveUsers,
     int SystemAdmins,
+    int OrganizationUnits,
+    int Teams,
     int TotalBoards,
     int TotalCards,
     int OverdueCards);

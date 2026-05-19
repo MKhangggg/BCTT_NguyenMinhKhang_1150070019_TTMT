@@ -24,6 +24,17 @@ public record LoginRequest(
     [Required(ErrorMessage = "Mật khẩu là bắt buộc.")]
     string Password);
 
+public record UpdateProfileRequest(
+    [Required(ErrorMessage = "Họ tên là bắt buộc.")]
+    [StringLength(100, MinimumLength = 2, ErrorMessage = "Họ tên phải có từ 2 đến 100 ký tự.")]
+    string FullName,
+    [StringLength(500, ErrorMessage = "Link ảnh đại diện không được vượt quá 500 ký tự.")]
+    string? AvatarUrl,
+    [StringLength(120, ErrorMessage = "Phòng ban không được vượt quá 120 ký tự.")]
+    string? Department,
+    [StringLength(120, ErrorMessage = "Chức danh không được vượt quá 120 ký tự.")]
+    string? JobTitle);
+
 public record ChangePasswordRequest(
     [Required(ErrorMessage = "Mật khẩu hiện tại là bắt buộc.")]
     string CurrentPassword,
@@ -38,6 +49,9 @@ public record UserResponse(
     string Email,
     string? AvatarUrl,
     string? Department,
+    int? OrganizationUnitId,
+    string? OrganizationUnitCode,
+    string? OrganizationUnitName,
     string? JobTitle,
     bool IsSystemAdmin,
     bool IsActive);

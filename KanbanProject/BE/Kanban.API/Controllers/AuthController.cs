@@ -37,6 +37,22 @@ public class AuthController : ApiControllerBase
     }
 
     [Authorize]
+    [HttpPut("profile")]
+    public async Task<ActionResult<UserResponse>> UpdateProfile(UpdateProfileRequest request)
+    {
+        return Ok(await _authService.UpdateProfileAsync(CurrentUserId, request));
+    }
+
+    [Authorize]
+    [HttpPost("avatar")]
+    [RequestSizeLimit(2 * 1024 * 1024)]
+    public async Task<ActionResult<UserResponse>> UploadAvatar([FromForm] IFormFile file)
+    {
+        var publicBaseUrl = $"{Request.Scheme}://{Request.Host}";
+        return Ok(await _authService.UploadAvatarAsync(CurrentUserId, file, publicBaseUrl));
+    }
+
+    [Authorize]
     [HttpPut("change-password")]
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
     {

@@ -16,6 +16,7 @@ public static class SeedData
             existingAdmin.Department ??= "Vận hành";
             existingAdmin.JobTitle ??= "Quản trị hệ thống";
             await db.SaveChangesAsync();
+            await EnsureDudiStructureAsync(db, existingAdmin);
         }
 
         if (await db.Users.AnyAsync())
@@ -111,5 +112,65 @@ public static class SeedData
 
         db.Boards.Add(board);
         await db.SaveChangesAsync();
+        await EnsureDudiStructureAsync(db, admin);
+    }
+
+    private static async Task EnsureDudiStructureAsync(AppDbContext db, User admin)
+    {
+        var operations = await EnsureUnitAsync(db, "DUDI-OPS", "Ban vận hành DUDI", OrganizationUnitType.Department, null, admin.Id, "Quản trị vận hành nội bộ.");
+        var product = await EnsureUnitAsync(db, "DUDI-PROD", "Phòng sản phẩm & kỹ thuật", OrganizationUnitType.Department, null, admin.Id, "Phát triển sản phẩm, nền tảng và hệ thống nội bộ.");
+        await EnsureUnitAsync(db, "DUDI-FE", "Team Frontend", OrganizationUnitType.Team, product.Id, admin.Id, "Xây dựng giao diện và trải nghiệm người dùng.");
+        await EnsureUnitAsync(db, "DUDI-BE", "Team Backend", OrganizationUnitType.Team, product.Id, admin.Id, "Xây dựng API, dữ liệu và tích hợp hệ thống.");
+        await EnsureUnitAsync(db, "DUDI-QA", "Team QA", OrganizationUnitType.Team, product.Id, admin.Id, "Kiểm thử, nghiệm thu và đảm bảo chất lượng.");
+
+        if (!await db.OrganizationUnitMembers.AnyAsync(member => member.OrganizationUnitId == operations.Id && member.UserId == admin.Id))
+        {
+            db.OrganizationUnitMembers.Add(new OrganizationUnitMember
+            {
+                OrganizationUnitId = operations.Id,
+                UserId = admin.Id,
+                Role = OrganizationUnitMemberRole.Lead
+            });
+        }
+
+        admin.OrganizationUnitId ??= operations.Id;
+        admin.Department = operations.Name;
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task<OrganizationUnit> EnsureUnitAsync(
+        AppDbContext db,
+        string code,
+        string name,
+        OrganizationUnitType type,
+        int? parentId,
+        int? managerId,
+        string description)
+    {
+        var unit = await db.OrganizationUnits.FirstOrDefaultAsync(item => item.Code == code);
+        if (unit is not null)
+        {
+            unit.Name = name;
+            unit.Description = description;
+            unit.Type = type;
+            unit.ParentId = parentId;
+            unit.ManagerId ??= managerId;
+            unit.IsActive = true;
+            return unit;
+        }
+
+        unit = new OrganizationUnit
+        {
+            Code = code,
+            Name = name,
+            Description = description,
+            Type = type,
+            ParentId = parentId,
+            ManagerId = managerId,
+            IsActive = true
+        };
+        db.OrganizationUnits.Add(unit);
+        await db.SaveChangesAsync();
+        return unit;
     }
 }

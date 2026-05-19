@@ -62,7 +62,7 @@ public class CardsController : ApiControllerBase
     public async Task<IActionResult> ReorderCards(ReorderCardsRequest request)
     {
         var boardId = await _cardService.ReorderCardsAsync(CurrentUserId, request);
-        await BoardRealtime.BroadcastBoardChangedAsync(_hubContext, boardId, "CardsReordered", CurrentUserId, new { request.Cards });
+        await BoardRealtime.BroadcastBoardChangedAsync(_hubContext, boardId, "CardsReordered", CurrentUserId, new { request.Cards, request.MovedCardId });
         return NoContent();
     }
 

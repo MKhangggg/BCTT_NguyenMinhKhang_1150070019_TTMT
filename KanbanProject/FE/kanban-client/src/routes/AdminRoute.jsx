@@ -3,15 +3,21 @@ import Loading from '../components/common/Loading.jsx'
 import { useAuth } from '../hooks/useAuth'
 
 function AdminRoute() {
-  const { user, booting } = useAuth()
+  const { isSystemAdmin, booting } = useAuth()
   const location = useLocation()
 
   if (booting) {
     return <Loading label="Đang kiểm tra quyền" />
   }
 
-  if (!user?.isSystemAdmin) {
-    return <Navigate to="/" state={{ from: location }} replace />
+  if (!isSystemAdmin) {
+    return (
+      <Navigate
+        to="/forbidden"
+        state={{ from: location, requiredRole: 'Quản trị hệ thống' }}
+        replace
+      />
+    )
   }
 
   return <Outlet />

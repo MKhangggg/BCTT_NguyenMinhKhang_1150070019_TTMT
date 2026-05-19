@@ -151,6 +151,14 @@ public class CardService : ICardService
         }
 
         await BoardAccess.EnsureCanEditCardsAsync(_db, boardId, userId);
+        var movedCard = request.MovedCardId is int movedCardId
+            ? cards.FirstOrDefault(c => c.Id == movedCardId)
+            : cards.FirstOrDefault(c =>
+            {
+                var item = request.Cards.FirstOrDefault(r => r.CardId == c.Id);
+                return item is not null && (item.ColumnId != c.ColumnId || item.Position != c.Position);
+            });
+
         foreach (var item in request.Cards)
         {
             var card = cards.First(c => c.Id == item.CardId);
@@ -160,6 +168,7 @@ public class CardService : ICardService
         }
 
         AddActivity(boardId, null, userId, "ReorderCards", "Sắp xếp lại thẻ trong bảng");
+        await AddCardMoveNotificationsAsync(boardId, userId, movedCard);
         await _db.SaveChangesAsync();
         return boardId;
     }
@@ -283,6 +292,33 @@ public class CardService : ICardService
         });
     }
 
+    private async Task AddCardMoveNotificationsAsync(int boardId, int actorId, Card? movedCard)
+    {
+        if (movedCard is null)
+        {
+            return;
+        }
+
+        var memberIds = await _db.BoardMembers
+            .Where(member => member.BoardId == boardId && member.UserId != actorId)
+            .Select(member => member.UserId)
+            .Distinct()
+            .ToListAsync();
+
+        foreach (var memberId in memberIds)
+        {
+            _db.Notifications.Add(new Notification
+            {
+                UserId = memberId,
+                Title = "Thẻ trong dự án vừa được di chuyển",
+                Message = $"Thẻ \"{movedCard.Title}\" vừa được cập nhật vị trí.",
+                Type = "CardMoved",
+                BoardId = boardId,
+                CardId = movedCard.Id
+            });
+        }
+    }
+
     private void AddAssignmentNotification(Card card, int actorId)
     {
         if (card.AssigneeId is null || card.AssigneeId == actorId)
@@ -295,7 +331,9 @@ public class CardService : ICardService
             UserId = card.AssigneeId.Value,
             Title = "Bạn được gán vào thẻ",
             Message = $"Bạn vừa được gán vào thẻ \"{card.Title}\".",
-            Type = "Assignment"
+            Type = "Assignment",
+            BoardId = card.BoardId,
+            CardId = card.Id
         });
     }
 }

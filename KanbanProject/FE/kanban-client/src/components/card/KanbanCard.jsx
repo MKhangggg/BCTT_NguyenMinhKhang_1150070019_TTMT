@@ -51,7 +51,7 @@ function KanbanCard({ card, onOpen }) {
       style={{ transform: CSS.Translate.toString(transform) }}
       onClick={() => onOpen(card.id)}
     >
-      <button className="drag-handle" type="button" title="Kéo thẻ" {...listeners} {...attributes}>
+      <button className="drag-handle" type="button" title="Kéo thẻ" onClick={(event) => event.stopPropagation()} {...listeners} {...attributes}>
         <GripVertical size={15} />
       </button>
       <div className="card-body">

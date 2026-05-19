@@ -6,6 +6,7 @@ import PrivateRoute from './PrivateRoute.jsx'
 import LoginPage from '../pages/auth/LoginPage.jsx'
 import RegisterPage from '../pages/auth/RegisterPage.jsx'
 import DashboardPage from '../pages/dashboard/DashboardPage.jsx'
+import ProjectsPage from '../pages/projects/ProjectsPage.jsx'
 import BoardDetailPage from '../pages/board/BoardDetailPage.jsx'
 import ReportPage from '../pages/report/ReportPage.jsx'
 import ReportsPage from '../pages/reports/ReportsPage.jsx'
@@ -14,6 +15,8 @@ import MyTasksPage from '../pages/tasks/MyTasksPage.jsx'
 import ActivityPage from '../pages/activity/ActivityPage.jsx'
 import ProfilePage from '../pages/profile/ProfilePage.jsx'
 import AdminUsersPage from '../pages/admin/AdminUsersPage.jsx'
+import AdminOrganizationPage from '../pages/admin/AdminOrganizationPage.jsx'
+import ForbiddenPage from '../pages/system/ForbiddenPage.jsx'
 
 function AppRoutes() {
   return (
@@ -29,6 +32,7 @@ function AppRoutes() {
           )}
         >
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/boards/:boardId" element={<BoardDetailPage />} />
           <Route path="/boards/:boardId/reports" element={<ReportPage />} />
           <Route path="/reports" element={<ReportsPage />} />
@@ -36,8 +40,10 @@ function AppRoutes() {
           <Route path="/tasks" element={<MyTasksPage />} />
           <Route path="/activity" element={<ActivityPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/forbidden" element={<ForbiddenPage />} />
           <Route element={<AdminRoute />}>
             <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/organization" element={<AdminOrganizationPage />} />
           </Route>
         </Route>
       </Route>

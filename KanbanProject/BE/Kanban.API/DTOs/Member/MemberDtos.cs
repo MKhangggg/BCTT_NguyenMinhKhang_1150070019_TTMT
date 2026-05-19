@@ -7,3 +7,5 @@ public record BoardMemberDto(int Id, int BoardId, int UserId, string FullName, s
 public record AddMemberRequest(string Email, BoardRole Role);
 
 public record UpdateMemberRoleRequest(BoardRole Role);
+
+public record AddOrganizationUnitMembersRequest(int OrganizationUnitId, BoardRole Role, bool PromoteLeadsToAdmin = true);

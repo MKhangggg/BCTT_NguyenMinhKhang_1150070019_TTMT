@@ -10,7 +10,10 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<OrganizationUnit> OrganizationUnits => Set<OrganizationUnit>();
+    public DbSet<OrganizationUnitMember> OrganizationUnitMembers => Set<OrganizationUnitMember>();
     public DbSet<Board> Boards => Set<Board>();
+    public DbSet<ProjectDocument> ProjectDocuments => Set<ProjectDocument>();
     public DbSet<BoardMember> BoardMembers => Set<BoardMember>();
     public DbSet<BoardColumn> BoardColumns => Set<BoardColumn>();
     public DbSet<Card> Cards => Set<Card>();
@@ -33,15 +36,67 @@ public class AppDbContext : DbContext
             entity.Property(u => u.FullName).HasMaxLength(160);
             entity.Property(u => u.Department).HasMaxLength(120);
             entity.Property(u => u.JobTitle).HasMaxLength(120);
+            entity.HasOne(u => u.OrganizationUnit)
+                .WithMany(unit => unit.PrimaryUsers)
+                .HasForeignKey(u => u.OrganizationUnitId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<OrganizationUnit>(entity =>
+        {
+            entity.HasIndex(u => u.Code).IsUnique();
+            entity.Property(u => u.Code).HasMaxLength(40);
+            entity.Property(u => u.Name).HasMaxLength(160);
+            entity.Property(u => u.Description).HasMaxLength(500);
+            entity.Property(u => u.Type).HasConversion<string>().HasMaxLength(30);
+            entity.HasOne(u => u.Parent)
+                .WithMany(u => u.Children)
+                .HasForeignKey(u => u.ParentId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(u => u.Manager)
+                .WithMany(u => u.ManagedOrganizationUnits)
+                .HasForeignKey(u => u.ManagerId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<OrganizationUnitMember>(entity =>
+        {
+            entity.HasIndex(m => new { m.OrganizationUnitId, m.UserId }).IsUnique();
+            entity.Property(m => m.Role).HasConversion<string>().HasMaxLength(30);
+            entity.HasOne(m => m.OrganizationUnit)
+                .WithMany(u => u.Members)
+                .HasForeignKey(m => m.OrganizationUnitId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(m => m.User)
+                .WithMany(u => u.OrganizationUnitMemberships)
+                .HasForeignKey(m => m.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Board>(entity =>
         {
             entity.Property(b => b.Name).HasMaxLength(160);
+            entity.Property(b => b.ProjectCode).HasMaxLength(40);
+            entity.Property(b => b.Summary).HasMaxLength(2000);
             entity.HasOne(b => b.Owner)
                 .WithMany(u => u.OwnedBoards)
                 .HasForeignKey(b => b.OwnerId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(b => b.OrganizationUnit)
+                .WithMany(u => u.Boards)
+                .HasForeignKey(b => b.OrganizationUnitId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<ProjectDocument>(entity =>
+        {
+            entity.Property(d => d.Title).HasMaxLength(180);
+            entity.Property(d => d.Description).HasMaxLength(500);
+            entity.Property(d => d.Url).HasMaxLength(1000);
+            entity.HasOne(d => d.Board)
+                .WithMany(b => b.Documents)
+                .HasForeignKey(d => d.BoardId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<BoardMember>(entity =>

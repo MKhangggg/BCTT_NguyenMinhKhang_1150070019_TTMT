@@ -5,7 +5,9 @@ import Avatar from '../../components/common/Avatar.jsx'
 import Loading from '../../components/common/Loading.jsx'
 import Notice from '../../components/common/Notice.jsx'
 import StatCard from '../../components/common/StatCard.jsx'
+import { useUI } from '../../context/UIContext.jsx'
 import { adminService } from '../../services/adminService'
+import { organizationService } from '../../services/organizationService'
 import { extractApiError, getErrorMessage } from '../../services/api'
 
 const blankForm = {
@@ -15,6 +17,7 @@ const blankForm = {
   email: '',
   password: '',
   department: '',
+  organizationUnitId: '',
   jobTitle: '',
   avatarUrl: '',
   isSystemAdmin: false,
@@ -22,9 +25,11 @@ const blankForm = {
 }
 
 function AdminUsersPage() {
+  const { confirm, showToast } = useUI()
   const navigate = useNavigate()
   const [overview, setOverview] = useState(null)
   const [users, setUsers] = useState([])
+  const [organizationUnits, setOrganizationUnits] = useState([])
   const [query, setQuery] = useState('')
   const [form, setForm] = useState(blankForm)
   const [resetPassword, setResetPassword] = useState('')
@@ -33,6 +38,7 @@ function AdminUsersPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
 
   const selectedUser = useMemo(
     () => users.find((user) => user.id === selectedUserId),
@@ -53,12 +59,14 @@ function AdminUsersPage() {
   const load = useCallback(async () => {
     try {
       setError('')
-      const [overviewData, userData] = await Promise.all([
+      const [overviewData, userData, unitData] = await Promise.all([
         adminService.getOverview(),
         adminService.getUsers(query),
+        organizationService.getUnitOptions(true),
       ])
       setOverview(overviewData)
       setUsers(userData)
+      setOrganizationUnits(unitData)
     } catch (err) {
       if (!redirectIfForbidden(err)) {
         setError(getErrorMessage(err))
@@ -75,6 +83,7 @@ function AdminUsersPage() {
   const editUser = (user) => {
     setSelectedUserId(user.id)
     setResetPassword('')
+    setFieldErrors({})
     setForm({
       id: user.id,
       fullName: user.fullName,
@@ -82,6 +91,7 @@ function AdminUsersPage() {
       email: user.email,
       password: '',
       department: user.department || '',
+      organizationUnitId: user.organizationUnitId || '',
       jobTitle: user.jobTitle || '',
       avatarUrl: user.avatarUrl || '',
       isSystemAdmin: user.isSystemAdmin,
@@ -92,14 +102,26 @@ function AdminUsersPage() {
   const newUser = () => {
     setSelectedUserId(null)
     setResetPassword('')
+    setFieldErrors({})
     setForm(blankForm)
   }
 
   const saveUser = async (event) => {
     event.preventDefault()
-    setSaving(true)
     setError('')
     setMessage('')
+    const nextErrors = {}
+    if (!form.fullName.trim()) nextErrors.fullName = 'Vui lòng nhập họ và tên.'
+    if (!form.userName.trim()) nextErrors.userName = 'Vui lòng nhập tên đăng nhập.'
+    if (!form.email.trim()) nextErrors.email = 'Vui lòng nhập email.'
+    if (!form.id && !form.password.trim()) nextErrors.password = 'Vui lòng nhập mật khẩu.'
+    if (Object.keys(nextErrors).length) {
+      setFieldErrors(nextErrors)
+      setError('Bạn kiểm tra lại các trường bắt buộc nhé.')
+      return
+    }
+    setFieldErrors({})
+    setSaving(true)
 
     try {
       if (form.id) {
@@ -109,11 +131,13 @@ function AdminUsersPage() {
           email: form.email,
           avatarUrl: form.avatarUrl || null,
           department: form.department || null,
+          organizationUnitId: form.organizationUnitId ? Number(form.organizationUnitId) : null,
           jobTitle: form.jobTitle || null,
           isSystemAdmin: form.isSystemAdmin,
           isActive: form.isActive,
         })
         setMessage('Cập nhật người dùng thành công.')
+        showToast({ type: 'success', title: 'Đã cập nhật người dùng', message: form.email })
       } else {
         await adminService.createUser({
           fullName: form.fullName,
@@ -121,11 +145,13 @@ function AdminUsersPage() {
           email: form.email,
           password: form.password,
           department: form.department || null,
+          organizationUnitId: form.organizationUnitId ? Number(form.organizationUnitId) : null,
           jobTitle: form.jobTitle || null,
           isSystemAdmin: form.isSystemAdmin,
           isActive: form.isActive,
         })
         setMessage('Tạo người dùng thành công.')
+        showToast({ type: 'success', title: 'Đã tạo người dùng', message: form.email })
         setForm(blankForm)
       }
       await load()
@@ -139,9 +165,18 @@ function AdminUsersPage() {
   }
 
   const toggleStatus = async (user) => {
+    const ok = await confirm({
+      title: user.isActive ? 'Khóa tài khoản?' : 'Mở khóa tài khoản?',
+      message: `${user.fullName} sẽ ${user.isActive ? 'không thể đăng nhập' : 'có thể đăng nhập lại'} sau thao tác này.`,
+      confirmText: user.isActive ? 'Khóa tài khoản' : 'Mở khóa',
+      tone: user.isActive ? 'danger' : 'warning',
+    })
+    if (!ok) return
+
     try {
       setError('')
       await adminService.setStatus(user.id, { isActive: !user.isActive })
+      showToast({ type: 'success', title: user.isActive ? 'Đã khóa tài khoản' : 'Đã mở khóa tài khoản', message: user.email })
       await load()
     } catch (err) {
       if (!redirectIfForbidden(err)) {
@@ -152,11 +187,20 @@ function AdminUsersPage() {
 
   const submitResetPassword = async () => {
     if (!selectedUser || !resetPassword.trim()) return
+    const ok = await confirm({
+      title: 'Đặt lại mật khẩu?',
+      message: `Mật khẩu của ${selectedUser.email} sẽ được đổi ngay.`,
+      confirmText: 'Đặt lại',
+      tone: 'warning',
+    })
+    if (!ok) return
+
     try {
       setError('')
       await adminService.resetPassword(selectedUser.id, { newPassword: resetPassword })
       setResetPassword('')
       setMessage(`Đã đặt lại mật khẩu cho ${selectedUser.email}.`)
+      showToast({ type: 'success', title: 'Đã đặt lại mật khẩu', message: selectedUser.email })
     } catch (err) {
       if (!redirectIfForbidden(err)) {
         setError(getErrorMessage(err))
@@ -182,7 +226,7 @@ function AdminUsersPage() {
           <StatCard icon={<Users size={20} />} label="Người dùng" value={overview.totalUsers} hint="tổng tài khoản" tone="blue" />
           <StatCard icon={<UserCog size={20} />} label="Đang hoạt động" value={overview.activeUsers} hint="có thể đăng nhập" tone="green" />
           <StatCard icon={<ShieldCheck size={20} />} label="Quản trị viên" value={overview.systemAdmins} hint="quyền hệ thống" tone="amber" />
-          <StatCard icon={<KeyRound size={20} />} label="Bảng" value={overview.totalBoard} hint={`${overview.totalCards} thẻ đang hoạt động`} tone="red" />
+          <StatCard icon={<KeyRound size={20} />} label="Đơn vị DUDI" value={overview.organizationUnits || 0} hint={`${overview.teams || 0} team chuyên môn`} tone="red" />
         </div>
       )}
 
@@ -219,7 +263,7 @@ function AdminUsersPage() {
                   <strong>{user.fullName}</strong>
                   <span>{user.email}</span>
                 </div>
-                <span>{user.department || 'Chưa có phòng ban'}</span>
+                <span>{user.organizationUnitName || user.department || 'Chưa có phòng ban'}</span>
                 <span className={`status-chip ${user.isActive ? 'active' : 'inactive'}`}>
                   {user.isActive ? 'Đang hoạt động' : 'Tạm khóa'}
                 </span>
@@ -238,18 +282,45 @@ function AdminUsersPage() {
           </header>
 
           <form className="admin-form stack" onSubmit={saveUser}>
-            <label>Họ và tên<input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} /></label>
+            <label>
+              Họ và tên
+              <input className={fieldErrors.fullName ? 'is-invalid' : ''} value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
+              {fieldErrors.fullName && <span className="field-error-text">{fieldErrors.fullName}</span>}
+            </label>
             <div className="form-grid two">
-              <label>Tên đăng nhập<input value={form.userName} onChange={(e) => setForm({ ...form, userName: e.target.value })} /></label>
-              <label>Email<input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
+              <label>
+                Tên đăng nhập
+                <input className={fieldErrors.userName ? 'is-invalid' : ''} value={form.userName} onChange={(e) => setForm({ ...form, userName: e.target.value })} />
+                {fieldErrors.userName && <span className="field-error-text">{fieldErrors.userName}</span>}
+              </label>
+              <label>
+                Email
+                <input className={fieldErrors.email ? 'is-invalid' : ''} type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                {fieldErrors.email && <span className="field-error-text">{fieldErrors.email}</span>}
+              </label>
             </div>
             {!form.id && (
-              <label>Mật khẩu<input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></label>
+              <label>
+                Mật khẩu
+                <input className={fieldErrors.password ? 'is-invalid' : ''} type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+                {fieldErrors.password && <span className="field-error-text">{fieldErrors.password}</span>}
+              </label>
             )}
             <div className="form-grid two">
-              <label>Phòng ban<input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} /></label>
+              <label>
+                Phòng ban / team DUDI
+                <select value={form.organizationUnitId} onChange={(e) => setForm({ ...form, organizationUnitId: e.target.value })}>
+                  <option value="">Chưa gán cơ cấu</option>
+                  {organizationUnits.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.type === 'Team' ? 'Team' : 'Phòng ban'} · {unit.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label>Chức danh<input value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} /></label>
             </div>
+            <label>Phòng ban hiển thị<input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="Tự lấy theo đơn vị nếu đã chọn" /></label>
             <label>URL ảnh đại diện<input value={form.avatarUrl} onChange={(e) => setForm({ ...form, avatarUrl: e.target.value })} /></label>
             <div className="switch-grid">
               <label className="check-row"><input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} /> Đang hoạt động</label>
@@ -270,7 +341,18 @@ function AdminUsersPage() {
                 {selectedUser.isActive ? 'Khóa tài khoản' : 'Mở khóa'}
               </button>
               <div className="inline-form">
-                <input type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} placeholder="Mật khẩu mới" />
+                <input
+                  type="password"
+                  value={resetPassword}
+                  onChange={(e) => setResetPassword(e.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      submitResetPassword()
+                    }
+                  }}
+                  placeholder="Mật khẩu mới"
+                />
                 <button className="ghost-button compact" type="button" onClick={submitResetPassword}>Đặt lại</button>
               </div>
             </div>

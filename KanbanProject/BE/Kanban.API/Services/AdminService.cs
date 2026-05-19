@@ -27,6 +27,8 @@ public class AdminService : IAdminService
             await _db.Users.CountAsync(u => u.IsActive),
             await _db.Users.CountAsync(u => !u.IsActive),
             await _db.Users.CountAsync(u => u.IsSystemAdmin),
+            await _db.OrganizationUnits.CountAsync(u => u.IsActive),
+            await _db.OrganizationUnits.CountAsync(u => u.IsActive && u.Type == OrganizationUnitType.Team),
             await _db.Boards.CountAsync(),
             await _db.Cards.CountAsync(c => !c.IsArchived),
             await _db.Cards.CountAsync(c => !c.IsArchived && c.DueDate != null && c.DueDate < now));
@@ -45,6 +47,8 @@ public class AdminService : IAdminService
                 u.UserName.ToLower().Contains(keyword) ||
                 u.Email.ToLower().Contains(keyword) ||
                 (u.Department != null && u.Department.ToLower().Contains(keyword)) ||
+                (u.OrganizationUnit != null && u.OrganizationUnit.Name.ToLower().Contains(keyword)) ||
+                (u.OrganizationUnit != null && u.OrganizationUnit.Code.ToLower().Contains(keyword)) ||
                 (u.JobTitle != null && u.JobTitle.ToLower().Contains(keyword)));
         }
 
@@ -59,6 +63,9 @@ public class AdminService : IAdminService
                 u.Email,
                 u.AvatarUrl,
                 u.Department,
+                u.OrganizationUnitId,
+                u.OrganizationUnit != null ? u.OrganizationUnit.Code : null,
+                u.OrganizationUnit != null ? u.OrganizationUnit.Name : null,
                 u.JobTitle,
                 u.IsSystemAdmin,
                 u.IsActive,
@@ -83,7 +90,8 @@ public class AdminService : IAdminService
             UserName = request.UserName.Trim().ToLowerInvariant(),
             Email = request.Email.Trim().ToLowerInvariant(),
             PasswordHash = PasswordHelper.HashPassword(request.Password),
-            Department = Normalize(request.Department),
+            OrganizationUnitId = request.OrganizationUnitId,
+            Department = await ResolveDepartmentNameAsync(request.OrganizationUnitId, request.Department),
             JobTitle = Normalize(request.JobTitle),
             IsSystemAdmin = request.IsSystemAdmin,
             IsActive = request.IsActive
@@ -105,7 +113,8 @@ public class AdminService : IAdminService
         user.UserName = request.UserName.Trim().ToLowerInvariant();
         user.Email = request.Email.Trim().ToLowerInvariant();
         user.AvatarUrl = Normalize(request.AvatarUrl);
-        user.Department = Normalize(request.Department);
+        user.OrganizationUnitId = request.OrganizationUnitId;
+        user.Department = await ResolveDepartmentNameAsync(request.OrganizationUnitId, request.Department);
         user.JobTitle = Normalize(request.JobTitle);
         user.IsSystemAdmin = request.IsSystemAdmin;
         user.IsActive = request.IsActive;
@@ -195,6 +204,9 @@ public class AdminService : IAdminService
                 u.Email,
                 u.AvatarUrl,
                 u.Department,
+                u.OrganizationUnitId,
+                u.OrganizationUnit != null ? u.OrganizationUnit.Code : null,
+                u.OrganizationUnit != null ? u.OrganizationUnit.Name : null,
                 u.JobTitle,
                 u.IsSystemAdmin,
                 u.IsActive,
@@ -204,6 +216,21 @@ public class AdminService : IAdminService
                 u.BoardMembers.Count,
                 u.AssignedCards.Count(c => !c.IsArchived)))
             .FirstAsync();
+    }
+
+    private async Task<string?> ResolveDepartmentNameAsync(int? organizationUnitId, string? fallbackDepartment)
+    {
+        if (organizationUnitId is null)
+        {
+            return Normalize(fallbackDepartment);
+        }
+
+        var unit = await _db.OrganizationUnits
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Id == organizationUnitId && item.IsActive)
+            ?? throw new KeyNotFoundException("Không tìm thấy phòng ban hoặc team đang hoạt động.");
+
+        return unit.Name;
     }
 
     private static string? Normalize(string? value)

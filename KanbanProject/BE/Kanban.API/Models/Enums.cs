@@ -14,3 +14,15 @@ public enum CardPriority
     Medium,
     High
 }
+
+public enum OrganizationUnitType
+{
+    Department,
+    Team
+}
+
+public enum OrganizationUnitMemberRole
+{
+    Member,
+    Lead
+}

@@ -32,13 +32,18 @@ internal static class BoardAccess
         return role.Value;
     }
 
-    private static async Task<bool> IsSystemAdminAsync(AppDbContext db, int userId)
+    public static async Task<bool> IsSystemAdminAsync(AppDbContext db, int userId)
     {
         return await db.Users.AnyAsync(u => u.Id == userId && u.IsActive && u.IsSystemAdmin);
     }
 
     public static async Task EnsureCanManageBoardAsync(AppDbContext db, int boardId, int userId)
     {
+        if (await IsSystemAdminAsync(db, userId))
+        {
+            return;
+        }
+
         var role = await EnsureMemberAsync(db, boardId, userId);
         if (role is not (BoardRole.Owner or BoardRole.Admin))
         {
@@ -48,6 +53,11 @@ internal static class BoardAccess
 
     public static async Task EnsureCanEditCardsAsync(AppDbContext db, int boardId, int userId)
     {
+        if (await IsSystemAdminAsync(db, userId))
+        {
+            return;
+        }
+
         var role = await EnsureMemberAsync(db, boardId, userId);
         if (role == BoardRole.Viewer)
         {
@@ -57,6 +67,11 @@ internal static class BoardAccess
 
     public static async Task EnsureOwnerAsync(AppDbContext db, int boardId, int userId)
     {
+        if (await IsSystemAdminAsync(db, userId))
+        {
+            return;
+        }
+
         var role = await EnsureMemberAsync(db, boardId, userId);
         if (role != BoardRole.Owner)
         {

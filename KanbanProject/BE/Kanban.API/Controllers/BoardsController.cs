@@ -41,6 +41,19 @@ public class BoardsController : ApiControllerBase
         return Ok(await _boardService.UpdateBoardAsync(CurrentUserId, id, request));
     }
 
+    [HttpPost("{id:int}/documents")]
+    public async Task<ActionResult<ProjectDocumentDto>> AddProjectDocument(int id, CreateProjectDocumentRequest request)
+    {
+        return Ok(await _boardService.AddProjectDocumentAsync(CurrentUserId, id, request));
+    }
+
+    [HttpDelete("{id:int}/documents/{documentId:int}")]
+    public async Task<IActionResult> DeleteProjectDocument(int id, int documentId)
+    {
+        await _boardService.DeleteProjectDocumentAsync(CurrentUserId, id, documentId);
+        return NoContent();
+    }
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteBoard(int id)
     {

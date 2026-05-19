@@ -38,6 +38,11 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
+  const updateStoredUser = useCallback((nextUser) => {
+    localStorage.setItem('kanban_user', JSON.stringify(nextUser))
+    setUser(nextUser)
+  }, [])
+
   useEffect(() => {
     const handleAuthExpired = () => logout()
     window.addEventListener(authExpiredEvent, handleAuthExpired)
@@ -59,15 +64,23 @@ export function AuthProvider({ children }) {
       .finally(() => setBooting(false))
   }, [token, logout])
 
+  const isSystemAdmin = Boolean(user?.isSystemAdmin)
+  const role = isSystemAdmin ? 'admin' : 'user'
+  const roleLabel = isSystemAdmin ? 'Quản trị hệ thống' : 'Người dùng'
+
   const value = useMemo(() => ({
     token,
     user,
     booting,
     isAuthenticated: Boolean(token),
+    isSystemAdmin,
+    role,
+    roleLabel,
     login,
     register,
     logout,
-  }), [token, user, booting, login, register, logout])
+    updateStoredUser,
+  }), [token, user, booting, isSystemAdmin, role, roleLabel, login, register, logout, updateStoredUser])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
