@@ -1172,8 +1172,20 @@ textarea.is-invalid {
 
 .kanban-card.dragging {
   opacity: 0.65;
-  z-index: 5;
+  z-index: 80;
   rotate: 1.2deg;
+}
+
+.drag-overlay-card {
+  cursor: grabbing;
+  max-width: 308px;
+  min-height: auto;
+  opacity: 1;
+  pointer-events: none;
+  rotate: 1deg;
+  transform: scale(1.03);
+  width: 308px;
+  z-index: 1200;
 }
 
 .drag-handle {
@@ -3181,6 +3193,17 @@ textarea.is-invalid {
 .notification-item span {
   color: #475569;
   font-size: 13px;
+}
+
+.notification-item strong {
+  color: #172033;
+}
+
+.notification-item em {
+  color: #2563eb;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
 }
 
 .muted {
@@ -5535,7 +5558,17 @@ textarea.is-invalid {
   filter: drop-shadow(0 18px 24px rgba(15, 23, 42, 0.18));
   opacity: 0.9;
   position: relative;
-  z-index: 30;
+  z-index: 90;
+}
+
+.drag-overlay-card,
+.board-page .drag-overlay-card,
+html[data-theme="dark"] .board-page .drag-overlay-card {
+  box-shadow: 0 28px 60px rgba(15, 23, 42, 0.32);
+  opacity: 1;
+  padding: 12px 14px;
+  position: relative;
+  z-index: 1200;
 }
 
 .kanban-column.column-over {
@@ -5668,7 +5701,6 @@ textarea.is-invalid {
 }
 
 .board-page .project-summary-strip,
-.board-page .board-health-panel,
 .board-page .board-filterbar {
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid #dbe4f0;
@@ -5718,7 +5750,7 @@ textarea.is-invalid {
 
 .board-page .kanban-board {
   gap: 18px;
-  height: calc(100vh - 410px);
+  height: calc(100vh - 286px);
   min-height: 360px;
   padding: 16px 24px 24px;
 }
@@ -6045,6 +6077,38 @@ html[data-theme="dark"] .quick-filter.is-active {
   background: rgba(37, 99, 235, 0.22);
   border-color: #60a5fa;
   color: #dbeafe;
+}
+
+html[data-theme="dark"] .notification-list {
+  background: #0f172a;
+}
+
+html[data-theme="dark"] .notification-item {
+  background: #101827;
+  border-color: #26364d;
+  color: #e5edf8;
+}
+
+html[data-theme="dark"] .notification-item:hover {
+  background: #162238;
+}
+
+html[data-theme="dark"] .notification-item.unread {
+  background: #13213a;
+}
+
+html[data-theme="dark"] .notification-item strong {
+  color: #f8fafc;
+}
+
+html[data-theme="dark"] .notification-item span,
+html[data-theme="dark"] .notification-item small {
+  color: #9fb0c7;
+}
+
+html[data-theme="dark"] .notification-item em,
+html[data-theme="dark"] .notification-item.has-target svg {
+  color: #93c5fd;
 }
 
 html[data-theme="dark"] .column-count,

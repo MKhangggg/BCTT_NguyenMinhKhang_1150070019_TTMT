@@ -286,6 +286,11 @@ Kiểm tra:
 
 ## 21. Thông tin chạy hệ thống
 
+Yêu cầu môi trường:
+
+- Backend dùng **.NET 9 SDK**.
+- Frontend dùng Node.js và npm.
+
 Backend mặc định:
 
 ```bash

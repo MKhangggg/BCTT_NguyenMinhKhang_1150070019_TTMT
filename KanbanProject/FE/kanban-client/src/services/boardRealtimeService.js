@@ -60,6 +60,9 @@ export const formatBoardRealtimeNotification = (event) => {
     ColumnUpdated: 'Cột vừa được cập nhật',
     ColumnDeleted: 'Cột vừa bị xóa',
     ColumnsReordered: 'Thứ tự cột vừa thay đổi',
+    ProjectOverviewUpdated: 'Tổng quan dự án vừa được cập nhật',
+    ProjectDocumentAdded: 'Tài liệu dự án vừa được thêm',
+    ProjectDocumentDeleted: 'Tài liệu dự án vừa bị xóa',
   }
 
   return {

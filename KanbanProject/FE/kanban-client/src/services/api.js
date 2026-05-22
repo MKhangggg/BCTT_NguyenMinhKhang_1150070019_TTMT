@@ -36,8 +36,8 @@ export const extractApiError = (error) => {
     : ''
 
   const message =
-    (typeof responseData?.message === 'string' && responseData.message.trim())
-    || messageFromValidation
+    messageFromValidation
+    || (typeof responseData?.message === 'string' && responseData.message.trim())
     || error?.message
     || 'Yêu cầu thất bại'
 

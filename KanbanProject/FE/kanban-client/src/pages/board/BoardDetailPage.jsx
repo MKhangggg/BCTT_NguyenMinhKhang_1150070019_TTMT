@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
-import { AlertTriangle, BarChart3, CalendarClock, CheckCircle2, CircleDot, ClipboardList, ExternalLink, FileQuestion, FileText, FilterX, FolderOpen, LayoutGrid, Plus, RefreshCw, Save, Search, Trash2, UserCheck, UserX, Users, Zap } from 'lucide-react'
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { AlertTriangle, BarChart3, CircleDot, ExternalLink, FileQuestion, FileText, FilterX, FolderOpen, LayoutGrid, Plus, RefreshCw, Save, Search, Trash2, UserCheck, UserX, Users, Zap } from 'lucide-react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import KanbanColumn from '../../components/column/KanbanColumn.jsx'
 import CardDetailModal from '../../components/card/CardDetailModal.jsx'
@@ -9,7 +9,6 @@ import Notice from '../../components/common/Notice.jsx'
 import EmptyState from '../../components/common/EmptyState.jsx'
 import { BoardSkeleton } from '../../components/common/Skeleton.jsx'
 import Avatar from '../../components/common/Avatar.jsx'
-import StatCard from '../../components/common/StatCard.jsx'
 import { useUI } from '../../context/UIContext.jsx'
 import { boardService } from '../../services/boardService'
 import { cardService } from '../../services/cardService'
@@ -21,6 +20,11 @@ import { useBoard } from '../../hooks/useBoard'
 import { useAuth } from '../../hooks/useAuth'
 
 const columnSuggestions = ['Cần làm', 'Đang làm', 'Đợi phản hồi', 'Hoàn thành']
+const overlayPriorityLabels = {
+  Low: 'Thấp',
+  Medium: 'Trung bình',
+  High: 'Cao',
+}
 
 function BoardDetailPage() {
   const { boardId } = useParams()
@@ -42,6 +46,7 @@ function BoardDetailPage() {
   const [projectForm, setProjectForm] = useState({ projectCode: '', name: '', description: '', summary: '', organizationUnitId: '', isPublic: false })
   const [organizationUnits, setOrganizationUnits] = useState([])
   const [documentForm, setDocumentForm] = useState({ title: '', url: '', description: '' })
+  const [documentErrors, setDocumentErrors] = useState({})
   const [projectSaving, setProjectSaving] = useState(false)
   const [documentSaving, setDocumentSaving] = useState(false)
   const loadingRealtimeRef = useRef(false)
@@ -56,33 +61,12 @@ function BoardDetailPage() {
 
   const columns = useMemo(() => board?.columns || [], [board])
   const allCards = useMemo(() => columns.flatMap((column) => column.cards || []), [columns])
-  const completedCards = useMemo(() => {
-    const completedColumnIds = columns
-      .filter((column) => {
-        const name = column.name.toLowerCase()
-        return name.includes('done') || name.includes('hoàn thành') || name.includes('xong')
-      })
-      .map((column) => column.id)
-    return allCards.filter((card) => completedColumnIds.includes(card.columnId)).length
-  }, [allCards, columns])
-  const overdueCards = useMemo(() => allCards.filter((card) => (
-    card.dueDate && new Date(card.dueDate) < new Date() && !card.isArchived
-  )).length, [allCards])
-  const todayCards = useMemo(() => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    return allCards.filter((card) => {
-      if (!card.dueDate || card.isArchived) return false
-      const due = new Date(card.dueDate)
-      due.setHours(0, 0, 0, 0)
-      return due.getTime() === today.getTime()
-    }).length
-  }, [allCards])
-  const highPriorityCards = useMemo(() => allCards.filter((card) => card.priority === 'High' && !card.isArchived).length, [allCards])
-  const unassignedCards = useMemo(() => allCards.filter((card) => !card.assigneeId && !card.isArchived).length, [allCards])
-  const completionRate = useMemo(() => (
-    allCards.length ? Math.round((completedCards / allCards.length) * 100) : 0
-  ), [allCards.length, completedCards])
+  const activeDragCard = useMemo(() => {
+    const rawId = String(activeDragId || '')
+    if (!rawId.startsWith('card-')) return null
+    const cardId = Number(rawId.replace('card-', ''))
+    return allCards.find((card) => Number(card.id) === cardId) || null
+  }, [activeDragId, allCards])
   const currentUserId = useMemo(() => {
     return user?.id ? String(user.id) : null
   }, [user])
@@ -111,9 +95,6 @@ function BoardDetailPage() {
       }),
     }))
   }, [columns, currentUserId, filters])
-  const visibleCardsCount = useMemo(() => (
-    filteredColumns.reduce((sum, column) => sum + (column.cards?.length || 0), 0)
-  ), [filteredColumns])
   const hasFilters = filters.query.trim() || filters.priority !== 'All' || filters.assigneeId !== 'All' || filters.quick !== 'All'
   const clearFilters = () => setFilters({ query: '', priority: 'All', assigneeId: 'All', quick: 'All' })
   const setQuickFilter = (quick) => setFilters((current) => ({ ...current, quick }))
@@ -202,6 +183,14 @@ function BoardDetailPage() {
       onStatusChanged: setRealtimeStatus,
       onBoardChanged: async (event) => {
         pushLiveNotification(formatBoardRealtimeNotification(event))
+
+        const realtimeBoard = event?.data?.board || event?.data?.Board
+        if (realtimeBoard) {
+          setBoard(realtimeBoard)
+          setActiveBoard(realtimeBoard)
+          return
+        }
+
         if (loadingRealtimeRef.current) return
 
         loadingRealtimeRef.current = true
@@ -218,7 +207,7 @@ function BoardDetailPage() {
     return () => {
       connection.stop().catch(() => {})
     }
-  }, [boardId, loadBoard, pushLiveNotification])
+  }, [boardId, loadBoard, pushLiveNotification, setActiveBoard])
 
   const createColumn = async (event) => {
     event.preventDefault()
@@ -266,16 +255,46 @@ function BoardDetailPage() {
 
   const addProjectDocument = async (event) => {
     event.preventDefault()
-    if (!documentForm.title.trim() || !documentForm.url.trim()) {
-      setError('Vui lòng nhập tên tài liệu và liên kết tài liệu.')
+    const nextErrors = {}
+    const title = documentForm.title.trim()
+    const url = documentForm.url.trim()
+    const description = documentForm.description.trim()
+
+    if (!title) {
+      nextErrors.title = 'Vui lòng nhập tên tài liệu.'
+    } else if (title.length < 2) {
+      nextErrors.title = 'Tên tài liệu cần ít nhất 2 ký tự.'
+    }
+
+    if (!url) {
+      nextErrors.url = 'Vui lòng nhập liên kết tài liệu.'
+    } else {
+      try {
+        const parsedUrl = new URL(url)
+        if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+          nextErrors.url = 'Liên kết phải bắt đầu bằng http:// hoặc https://.'
+        }
+      } catch {
+        nextErrors.url = 'Liên kết tài liệu không hợp lệ.'
+      }
+    }
+
+    if (description.length > 500) {
+      nextErrors.description = 'Mô tả tài liệu không được vượt quá 500 ký tự.'
+    }
+
+    if (Object.keys(nextErrors).length) {
+      setDocumentErrors(nextErrors)
+      setError('Bạn kiểm tra lại thông tin tài liệu được đánh dấu màu đỏ nhé.')
       return
     }
 
     try {
       setDocumentSaving(true)
       setError('')
-      await boardService.addProjectDocument(board.id, documentForm)
-      showToast({ type: 'success', title: 'Đã thêm tài liệu', message: documentForm.title })
+      setDocumentErrors({})
+      await boardService.addProjectDocument(board.id, { title, url, description: description || null })
+      showToast({ type: 'success', title: 'Đã thêm tài liệu', message: title })
       setDocumentForm({ title: '', url: '', description: '' })
       await loadBoard({ showLoading: false })
     } catch (err) {
@@ -414,9 +433,7 @@ function BoardDetailPage() {
     }
     if (overData.type === 'card') {
       targetColumnId = overData.card.columnId
-      targetIndex = targetColumnId === sourceColumn.id
-        ? (columns.find((column) => column.id === targetColumnId)?.cards.findIndex((card) => card.id === overData.card.id) ?? 0)
-        : 0
+      targetIndex = columns.find((column) => column.id === targetColumnId)?.cards.findIndex((card) => card.id === overData.card.id) ?? 0
     }
 
     if (!targetColumnId) return
@@ -476,7 +493,7 @@ function BoardDetailPage() {
   }
 
   return (
-    <section className={`board-page ${compactMode ? 'board-compact' : ''} ${activeDragId ? 'is-dragging-card' : ''}`}>
+    <section className={`board-page ${compactMode ? 'board-compact' : ''} ${activeDragCard ? 'is-dragging-card' : ''}`}>
       <div className="board-toolbar">
         <div className="board-title-block">
           <span className="eyebrow">
@@ -649,20 +666,35 @@ function BoardDetailPage() {
             {canManageProject && (
               <form className="project-document-form" onSubmit={addProjectDocument}>
                 <input
+                  className={documentErrors.title ? 'is-invalid' : ''}
                   value={documentForm.title}
-                  onChange={(event) => setDocumentForm({ ...documentForm, title: event.target.value })}
+                  onChange={(event) => {
+                    setDocumentForm({ ...documentForm, title: event.target.value })
+                    if (documentErrors.title) setDocumentErrors((current) => ({ ...current, title: '' }))
+                  }}
                   placeholder="Tên tài liệu"
                 />
+                {documentErrors.title && <span className="field-error-text">{documentErrors.title}</span>}
                 <input
+                  className={documentErrors.url ? 'is-invalid' : ''}
                   value={documentForm.url}
-                  onChange={(event) => setDocumentForm({ ...documentForm, url: event.target.value })}
+                  onChange={(event) => {
+                    setDocumentForm({ ...documentForm, url: event.target.value })
+                    if (documentErrors.url) setDocumentErrors((current) => ({ ...current, url: '' }))
+                  }}
                   placeholder="https://..."
                 />
+                {documentErrors.url && <span className="field-error-text">{documentErrors.url}</span>}
                 <input
+                  className={documentErrors.description ? 'is-invalid' : ''}
                   value={documentForm.description}
-                  onChange={(event) => setDocumentForm({ ...documentForm, description: event.target.value })}
+                  onChange={(event) => {
+                    setDocumentForm({ ...documentForm, description: event.target.value })
+                    if (documentErrors.description) setDocumentErrors((current) => ({ ...current, description: '' }))
+                  }}
                   placeholder="Mô tả ngắn"
                 />
+                {documentErrors.description && <span className="field-error-text">{documentErrors.description}</span>}
                 <button className="primary-button compact" type="submit" disabled={documentSaving}>
                   <Plus size={16} /> {documentSaving ? 'Đang thêm...' : 'Thêm tài liệu'}
                 </button>
@@ -672,32 +704,6 @@ function BoardDetailPage() {
         </div>
       </section>
       )}
-
-      <div className="board-insights">
-        <StatCard icon={<CircleDot size={19} />} label="Thẻ hiển thị" value={`${visibleCardsCount}/${allCards.length}`} hint="sau khi lọc" tone="blue" />
-        <StatCard icon={<CheckCircle2 size={19} />} label="Hoàn thành" value={completedCards} hint="thẻ đã xong" tone="green" />
-        <StatCard icon={<AlertTriangle size={19} />} label="Quá hạn" value={overdueCards} hint="đã qua hạn" tone="red" />
-      </div>
-
-      <section className="board-health-panel">
-        <div className="board-health-main">
-          <span className="board-health-icon"><ClipboardList size={20} /></span>
-          <div>
-            <span className="eyebrow">Sức khỏe bảng</span>
-            <h3>{completionRate}% hoàn thành</h3>
-            <p>Ưu tiên xử lý thẻ quá hạn, thẻ chưa phân công và việc có hạn hôm nay để bảng gọn hơn.</p>
-          </div>
-        </div>
-        <div className="board-health-ring" style={{ '--progress': `${completionRate * 3.6}deg` }}>
-          <strong>{completionRate}%</strong>
-          <span>xong</span>
-        </div>
-        <div className="board-health-flags">
-          <span><Zap size={15} /> Ưu tiên cao <strong>{highPriorityCards}</strong></span>
-          <span><CalendarClock size={15} /> Hạn hôm nay <strong>{todayCards}</strong></span>
-          <span><UserX size={15} /> Chưa giao <strong>{unassignedCards}</strong></span>
-        </div>
-      </section>
 
       <div className="board-filterbar">
         <div className="search-field">
@@ -775,6 +781,26 @@ function BoardDetailPage() {
             </div>
           </form>
         </div>
+        <DragOverlay dropAnimation={null} zIndex={1200}>
+          {activeDragCard ? (
+            <article className={`kanban-card drag-overlay-card ${activeDragCard.priority === 'High' ? 'card-high-priority' : ''}`}>
+              <div className="card-body">
+                <div className="label-row">
+                  {activeDragCard.labels?.slice(0, 3).map((label) => (
+                    <span key={`overlay-${activeDragCard.id}-${label.id}-${label.name}`} className="card-label" style={{ backgroundColor: label.color }}>
+                      {label.name}
+                    </span>
+                  ))}
+                </div>
+                <h3>{activeDragCard.title}</h3>
+                <div className="card-footer">
+                  <span className="priority-dot">{overlayPriorityLabels[activeDragCard.priority] || activeDragCard.priority}</span>
+                  {activeDragCard.assigneeName && <span>{activeDragCard.assigneeName}</span>}
+                </div>
+              </div>
+            </article>
+          ) : null}
+        </DragOverlay>
       </DndContext>
 
       {selectedCardId && (

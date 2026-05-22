@@ -138,7 +138,7 @@ function CardDetailModal({ cardId, member = [], onClose, onSaved, onDeleted }) {
 
   const saveCard = async (event) => {
     event?.preventDefault()
-    await saveCardDraft({ closeAfterSave: true, notify: true })
+    await saveCardDraft({ closeAfterSave: false, notify: true })
   }
 
   const handleInlineSaveKeyDown = (event) => {
