@@ -17,7 +17,7 @@ namespace Kanban.API.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.8")
+                .HasAnnotation("ProductVersion", "9.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -110,6 +110,43 @@ namespace Kanban.API.Migrations
                     b.ToTable("Boards");
                 });
 
+            modelBuilder.Entity("Kanban.API.Models.BoardChatMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BoardId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EditedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BoardId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("BoardChatMessages");
+                });
+
             modelBuilder.Entity("Kanban.API.Models.BoardColumn", b =>
                 {
                     b.Property<int>("Id")
@@ -123,6 +160,11 @@ namespace Kanban.API.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDone")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -140,7 +182,10 @@ namespace Kanban.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BoardId");
+                    b.HasIndex("BoardId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_BoardColumns_OneDoneColumn")
+                        .HasFilter("[IsDone] = CAST(1 AS bit)");
 
                     b.ToTable("BoardColumns");
                 });
@@ -193,6 +238,9 @@ namespace Kanban.API.Migrations
 
                     b.Property<int>("ColumnId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -330,6 +378,43 @@ namespace Kanban.API.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Comments");
+                });
+
+            modelBuilder.Entity("Kanban.API.Models.DirectMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RecipientId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SenderId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipientId");
+
+                    b.HasIndex("SenderId");
+
+                    b.ToTable("DirectMessages");
                 });
 
             modelBuilder.Entity("Kanban.API.Models.Notification", b =>
@@ -607,6 +692,25 @@ namespace Kanban.API.Migrations
                     b.Navigation("Owner");
                 });
 
+            modelBuilder.Entity("Kanban.API.Models.BoardChatMessage", b =>
+                {
+                    b.HasOne("Kanban.API.Models.Board", "Board")
+                        .WithMany("ChatMessages")
+                        .HasForeignKey("BoardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Kanban.API.Models.User", "User")
+                        .WithMany("BoardChatMessages")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Board");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Kanban.API.Models.BoardColumn", b =>
                 {
                     b.HasOne("Kanban.API.Models.Board", "Board")
@@ -712,6 +816,25 @@ namespace Kanban.API.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Kanban.API.Models.DirectMessage", b =>
+                {
+                    b.HasOne("Kanban.API.Models.User", "Recipient")
+                        .WithMany("ReceivedDirectMessages")
+                        .HasForeignKey("RecipientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Kanban.API.Models.User", "Sender")
+                        .WithMany("SentDirectMessages")
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Recipient");
+
+                    b.Navigation("Sender");
+                });
+
             modelBuilder.Entity("Kanban.API.Models.Notification", b =>
                 {
                     b.HasOne("Kanban.API.Models.User", "User")
@@ -786,6 +909,8 @@ namespace Kanban.API.Migrations
 
                     b.Navigation("Cards");
 
+                    b.Navigation("ChatMessages");
+
                     b.Navigation("Columns");
 
                     b.Navigation("Documents");
@@ -826,6 +951,8 @@ namespace Kanban.API.Migrations
 
                     b.Navigation("AssignedCards");
 
+                    b.Navigation("BoardChatMessages");
+
                     b.Navigation("BoardMembers");
 
                     b.Navigation("Comments");
@@ -839,6 +966,10 @@ namespace Kanban.API.Migrations
                     b.Navigation("OrganizationUnitMemberships");
 
                     b.Navigation("OwnedBoards");
+
+                    b.Navigation("ReceivedDirectMessages");
+
+                    b.Navigation("SentDirectMessages");
                 });
 #pragma warning restore 612, 618
         }

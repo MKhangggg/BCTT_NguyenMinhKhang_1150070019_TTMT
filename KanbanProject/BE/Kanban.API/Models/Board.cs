@@ -19,5 +19,6 @@ public class Board
     public ICollection<ProjectDocument> Documents { get; set; } = new List<ProjectDocument>();
     public ICollection<BoardColumn> Columns { get; set; } = new List<BoardColumn>();
     public ICollection<Card> Cards { get; set; } = new List<Card>();
+    public ICollection<BoardChatMessage> ChatMessages { get; set; } = new List<BoardChatMessage>();
     public ICollection<ActivityLog> ActivityLogs { get; set; } = new List<ActivityLog>();
 }

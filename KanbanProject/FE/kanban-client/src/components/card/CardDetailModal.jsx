@@ -24,7 +24,7 @@ const parseLabelNames = (value) => value
   .map((name) => name.trim())
   .filter(Boolean)
 
-function CardDetailModal({ cardId, member = [], onClose, onSaved, onDeleted }) {
+function CardDetailModal({ cardId, member = [], realtimeEvent, onClose, onSaved, onDeleted }) {
   const { confirm, showToast } = useUI()
   const [card, setCard] = useState(null)
   const [comments, setComments] = useState([])
@@ -81,6 +81,27 @@ function CardDetailModal({ cardId, member = [], onClose, onSaved, onDeleted }) {
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    const eventCardId = realtimeEvent?.data?.cardId
+    if (!eventCardId || Number(eventCardId) !== Number(cardId)) return
+
+    if (realtimeEvent.action === 'CommentAdded') {
+      const incoming = realtimeEvent.data?.comment
+      if (!incoming) return
+      setComments((current) => (
+        current.some((comment) => Number(comment.id) === Number(incoming.id))
+          ? current
+          : [...current, incoming]
+      ))
+      return
+    }
+
+    if (realtimeEvent.action === 'CommentDeleted') {
+      const commentId = realtimeEvent.data?.commentId
+      setComments((current) => current.filter((comment) => Number(comment.id) !== Number(commentId)))
+    }
+  }, [cardId, realtimeEvent])
 
   const buildLabelPayload = (nextLabelText) => parseLabelNames(nextLabelText)
     .map((name, index) => ({

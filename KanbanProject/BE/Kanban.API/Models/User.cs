@@ -24,6 +24,9 @@ public class User
     public ICollection<Card> AssignedCards { get; set; } = new List<Card>();
     public ICollection<Card> CreatedCards { get; set; } = new List<Card>();
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+    public ICollection<BoardChatMessage> BoardChatMessages { get; set; } = new List<BoardChatMessage>();
+    public ICollection<DirectMessage> SentDirectMessages { get; set; } = new List<DirectMessage>();
+    public ICollection<DirectMessage> ReceivedDirectMessages { get; set; } = new List<DirectMessage>();
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
     public ICollection<ActivityLog> ActivityLogs { get; set; } = new List<ActivityLog>();
 }

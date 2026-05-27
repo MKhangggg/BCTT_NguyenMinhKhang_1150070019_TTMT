@@ -24,7 +24,8 @@ public class ColumnService : IColumnService
             BoardId = boardId,
             Name = request.Name.Trim(),
             Position = position,
-            WipLimit = request.WipLimit
+            WipLimit = request.WipLimit,
+            IsDone = false
         };
 
         _db.BoardColumns.Add(column);
@@ -45,7 +46,7 @@ public class ColumnService : IColumnService
         var column = await _db.BoardColumns.FindAsync(columnId) ?? throw new KeyNotFoundException("Không tìm thấy cột.");
         await BoardAccess.EnsureCanManageBoardAsync(_db, column.BoardId, userId);
 
-        column.Name = request.Name.Trim();
+        column.Name = column.IsDone ? "Done" : request.Name.Trim();
         column.Position = request.Position;
         column.WipLimit = request.WipLimit;
         column.UpdatedAt = DateTime.UtcNow;
@@ -59,6 +60,11 @@ public class ColumnService : IColumnService
         var column = await _db.BoardColumns.FindAsync(columnId) ?? throw new KeyNotFoundException("Không tìm thấy cột.");
         await BoardAccess.EnsureCanManageBoardAsync(_db, column.BoardId, userId);
         var boardId = column.BoardId;
+
+        if (column.IsDone)
+        {
+            throw new InvalidOperationException("Không thể xóa cột hoàn thành mặc định của dự án.");
+        }
 
         if (await _db.Cards.AnyAsync(c => c.ColumnId == columnId))
         {

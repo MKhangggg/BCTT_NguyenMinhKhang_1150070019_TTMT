@@ -8,6 +8,7 @@ import RegisterPage from '../pages/auth/RegisterPage.jsx'
 import DashboardPage from '../pages/dashboard/DashboardPage.jsx'
 import ProjectsPage from '../pages/projects/ProjectsPage.jsx'
 import BoardDetailPage from '../pages/board/BoardDetailPage.jsx'
+import ChatPage from '../pages/chat/ChatPage.jsx'
 import ReportPage from '../pages/report/ReportPage.jsx'
 import ReportsPage from '../pages/reports/ReportsPage.jsx'
 import CalendarPage from '../pages/calendar/CalendarPage.jsx'
@@ -33,6 +34,7 @@ function AppRoutes() {
         >
           <Route path="/" element={<DashboardPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/chat" element={<ChatPage />} />
           <Route path="/boards/:boardId" element={<BoardDetailPage />} />
           <Route path="/boards/:boardId/reports" element={<ReportPage />} />
           <Route path="/reports" element={<ReportsPage />} />

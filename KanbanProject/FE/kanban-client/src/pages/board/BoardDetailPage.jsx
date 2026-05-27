@@ -25,6 +25,12 @@ const overlayPriorityLabels = {
   Medium: 'Trung bình',
   High: 'Cao',
 }
+const progressStatusLabels = {
+  Completed: 'Hoàn thành',
+  BehindSchedule: 'Chậm tiến độ',
+  InProgress: 'Đang thực hiện',
+  NotStarted: 'Chưa bắt đầu',
+}
 
 function BoardDetailPage() {
   const { boardId } = useParams()
@@ -39,6 +45,7 @@ function BoardDetailPage() {
   const [selectedCardId, setSelectedCardId] = useState(null)
   const [membersOpen, setMembersOpen] = useState(false)
   const [realtimeStatus, setRealtimeStatus] = useState('connecting')
+  const [lastRealtimeEvent, setLastRealtimeEvent] = useState(null)
   const [filters, setFilters] = useState({ query: '', priority: 'All', assigneeId: 'All', quick: 'All' })
   const [compactMode, setCompactMode] = useState(false)
   const [showProjectSummary, setShowProjectSummary] = useState(false)
@@ -74,6 +81,8 @@ function BoardDetailPage() {
     board?.members?.find((member) => String(member.userId) === currentUserId)?.role || null
   ), [board, currentUserId])
   const canManageProject = isSystemAdmin || currentProjectRole === 'Owner' || currentProjectRole === 'Admin'
+  const boardProgressPercent = Number(board?.progressPercent || 0)
+  const boardProgressStatus = progressStatusLabels[board?.progressStatus] || 'Chưa rõ tiến độ'
   const filteredColumns = useMemo(() => {
     const query = filters.query.trim().toLowerCase()
     return columns.map((column) => ({
@@ -85,7 +94,7 @@ function BoardDetailPage() {
           || card.labels?.some((label) => label.name.toLowerCase().includes(query))
         const matchesPriority = filters.priority === 'All' || card.priority === filters.priority
         const matchesAssignee = filters.assigneeId === 'All' || String(card.assigneeId || '') === filters.assigneeId
-        const isOverdue = card.dueDate && new Date(card.dueDate) < new Date() && !card.isArchived
+        const isOverdue = Boolean(card.isOverdue ?? (card.dueDate && new Date(card.dueDate) < new Date() && !card.isArchived && !card.isCompleted))
         const matchesQuick = filters.quick === 'All'
           || (filters.quick === 'Mine' && currentUserId && String(card.assigneeId || '') === currentUserId)
           || (filters.quick === 'Overdue' && isOverdue)
@@ -182,7 +191,12 @@ function BoardDetailPage() {
       boardId,
       onStatusChanged: setRealtimeStatus,
       onBoardChanged: async (event) => {
+        setLastRealtimeEvent(event)
         pushLiveNotification(formatBoardRealtimeNotification(event))
+
+        if (['ChatMessageAdded', 'CommentAdded', 'CommentDeleted'].includes(event?.action)) {
+          return
+        }
 
         const realtimeBoard = event?.data?.board || event?.data?.Board
         if (realtimeBoard) {
@@ -526,7 +540,7 @@ function BoardDetailPage() {
         <div>
           <span className="project-code-chip">{board.projectCode || `PRJ-${board.id}`}</span>
           <strong>{board.summary || board.description || 'Chưa có tóm tắt dự án.'}</strong>
-          <small>{board.documents?.length || 0} tài liệu · ID #{board.id}{board.organizationUnitName ? ` · ${board.organizationUnitName}` : ''}</small>
+          <small>{boardProgressPercent}% hoàn thành · {board.completedCards || 0}/{board.totalCards || 0} thẻ xong · {board.overdueCards || 0} quá hạn · {boardProgressStatus}</small>
         </div>
         <button className="ghost-button compact" type="button" onClick={() => setShowProjectSummary((value) => !value)}>
           <FolderOpen size={16} /> {showProjectSummary ? 'Ẩn tổng quan' : 'Tổng quan dự án'}
@@ -545,10 +559,18 @@ function BoardDetailPage() {
             <p>{board.summary || board.description || 'Chưa có tóm tắt dự án. Admin hoặc quản trị dự án nên bổ sung mục tiêu, phạm vi và tài liệu nền.'}</p>
           </div>
           <div className="project-id-card">
-            <span>ID dự án</span>
-            <strong>#{board.id}</strong>
-            <small>{board.projectCode || 'Chưa đặt mã'}</small>
+            <span>Tiến độ dự án</span>
+            <strong>{boardProgressPercent}%</strong>
+            <small>{board.completedCards || 0}/{board.totalCards || 0} thẻ hoàn thành · {boardProgressStatus}</small>
           </div>
+        </div>
+
+        <div className="project-summary-strip">
+          <div>
+            <strong>{board.remainingCards || 0} thẻ còn lại · {board.overdueCards || 0} thẻ quá hạn</strong>
+            <small>Mỗi dự án luôn có đúng một cột hoàn thành; tiến độ được tính từ thẻ chưa lưu trữ nằm trong cột đó.</small>
+          </div>
+          <div className="board-progress" style={{ '--board-progress': `${boardProgressPercent}%` }}><span /></div>
         </div>
 
         <div className="project-summary-grid">
@@ -807,6 +829,7 @@ function BoardDetailPage() {
         <CardDetailModal
           cardId={selectedCardId}
           member={board.members}
+          realtimeEvent={lastRealtimeEvent}
           onClose={closeCardModal}
           onSaved={loadBoard}
           onDeleted={loadBoard}
@@ -821,6 +844,7 @@ function BoardDetailPage() {
           onChanged={loadBoard}
         />
       )}
+
     </section>
   )
 }

@@ -20,6 +20,8 @@ public class AppDbContext : DbContext
     public DbSet<CardLabel> CardLabels => Set<CardLabel>();
     public DbSet<ChecklistItem> ChecklistItems => Set<ChecklistItem>();
     public DbSet<Comment> Comments => Set<Comment>();
+    public DbSet<BoardChatMessage> BoardChatMessages => Set<BoardChatMessage>();
+    public DbSet<DirectMessage> DirectMessages => Set<DirectMessage>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
 
@@ -116,6 +118,11 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<BoardColumn>(entity =>
         {
             entity.Property(c => c.Name).HasMaxLength(120);
+            entity.Property(c => c.IsDone).HasDefaultValue(false);
+            entity.HasIndex(c => c.BoardId)
+                .IsUnique()
+                .HasDatabaseName("UX_BoardColumns_OneDoneColumn")
+                .HasFilter("[IsDone] = CAST(1 AS bit)");
             entity.HasOne(c => c.Board)
                 .WithMany(b => b.Columns)
                 .HasForeignKey(c => c.BoardId)
@@ -173,6 +180,32 @@ public class AppDbContext : DbContext
             entity.HasOne(c => c.User)
                 .WithMany(u => u.Comments)
                 .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<BoardChatMessage>(entity =>
+        {
+            entity.Property(m => m.Content).HasMaxLength(2000);
+            entity.HasOne(m => m.Board)
+                .WithMany(b => b.ChatMessages)
+                .HasForeignKey(m => m.BoardId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(m => m.User)
+                .WithMany(u => u.BoardChatMessages)
+                .HasForeignKey(m => m.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<DirectMessage>(entity =>
+        {
+            entity.Property(m => m.Content).HasMaxLength(2000);
+            entity.HasOne(m => m.Sender)
+                .WithMany(u => u.SentDirectMessages)
+                .HasForeignKey(m => m.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(m => m.Recipient)
+                .WithMany(u => u.ReceivedDirectMessages)
+                .HasForeignKey(m => m.RecipientId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 

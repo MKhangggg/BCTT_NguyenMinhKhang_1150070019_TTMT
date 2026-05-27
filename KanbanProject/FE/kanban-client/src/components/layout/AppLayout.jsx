@@ -10,6 +10,7 @@ import {
   KanbanSquare,
   LayoutDashboard,
   LogOut,
+  MessageCircle,
   Moon,
   Search,
   ShieldCheck,
@@ -17,40 +18,79 @@ import {
   UserRound,
   X,
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { useBoard } from '../../hooks/useBoard'
 import { useUI } from '../../context/UIContext.jsx'
 import { boardService } from '../../services/boardService'
+import { createWorkspaceRealtimeConnection } from '../../services/boardRealtimeService'
 import Avatar from '../common/Avatar.jsx'
 import NotificationMenu from './NotificationMenu.jsx'
 
 function AppLayout() {
   const { user, logout, isSystemAdmin, roleLabel } = useAuth()
   const { theme, toggleTheme } = useUI()
-  const { activeBoard } = useBoard()
+  const { activeBoard, pushLiveNotification } = useBoard()
   const navigate = useNavigate()
+  const location = useLocation()
   const searchRef = useRef(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [boardSummaries, setBoardSummaries] = useState([])
+  const [chatUnread, setChatUnread] = useState(0)
+
+  const loadBoardSummaries = useCallback(() => (
+    boardService.getBoards()
+      .then((items) => setBoardSummaries(items))
+      .catch(() => setBoardSummaries([]))
+  ), [])
 
   useEffect(() => {
-    let mounted = true
+    loadBoardSummaries()
+  }, [loadBoardSummaries])
 
-    boardService.getBoards()
-      .then((items) => {
-        if (mounted) setBoardSummaries(items)
-      })
-      .catch(() => {
-        if (mounted) setBoardSummaries([])
-      })
+  useEffect(() => {
+    const connection = createWorkspaceRealtimeConnection({
+      onBoardListChanged: (event) => {
+        if (event?.action?.startsWith('Project')) {
+          loadBoardSummaries()
+        }
+      },
+      onDirectMessageChanged: (event) => {
+        const message = event?.data?.message
+        if (!message) return
+        const incoming = Number(message.recipientId) === Number(user?.id) && Number(message.senderId) !== Number(user?.id)
+        if (!incoming) return
 
+        if (!window.location.pathname.startsWith('/chat')) {
+          setChatUnread((count) => Math.min(99, count + 1))
+        }
+
+        pushLiveNotification({
+          id: `live-direct-${message.id}`,
+          title: `Tin nhắn mới từ ${message.senderName}`,
+          message: message.content,
+          type: 'DirectMessage',
+          chatUserId: message.senderId,
+          isRead: false,
+          isRealtime: true,
+          createdAt: event?.changedAtUtc || new Date().toISOString(),
+        })
+      },
+    })
+
+    connection.start().catch(() => {})
     return () => {
-      mounted = false
+      connection.stop().catch(() => {})
     }
-  }, [])
+  }, [loadBoardSummaries, pushLiveNotification, user?.id])
+
+  useEffect(() => {
+    if (location.pathname.startsWith('/chat')) {
+      setChatUnread(0)
+    }
+  }, [location.pathname])
 
   useEffect(() => {
     const closeSearch = (event) => {
@@ -151,6 +191,10 @@ function AppLayout() {
           <span className="nav-section-label">Không gian làm việc</span>
           <NavLink to="/"><LayoutDashboard size={18} /> Tổng quan</NavLink>
           <NavLink to="/projects"><FolderKanban size={18} /> Dự án</NavLink>
+          <NavLink to="/chat">
+            <MessageCircle size={18} /> Chat
+            {chatUnread > 0 && <span className="nav-unread-badge">{chatUnread}</span>}
+          </NavLink>
           <NavLink to="/calendar"><CalendarDays size={18} /> Lịch</NavLink>
           <NavLink to="/tasks"><CheckSquare size={18} /> Việc của tôi</NavLink>
           <NavLink to="/activity"><Activity size={18} /> Hoạt động</NavLink>

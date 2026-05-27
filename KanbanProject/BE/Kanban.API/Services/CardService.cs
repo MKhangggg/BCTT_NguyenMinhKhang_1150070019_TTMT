@@ -20,6 +20,7 @@ public class CardService : ICardService
         var column = await _db.BoardColumns.FindAsync(columnId) ?? throw new KeyNotFoundException("Không tìm thấy cột.");
         await BoardAccess.EnsureCanEditCardsAsync(_db, column.BoardId, userId);
         await BoardAccess.EnsureAssigneeInBoardAsync(_db, column.BoardId, request.AssigneeId);
+        await EnsureColumnCapacityAsync(column);
 
         var card = new Card
         {
@@ -34,6 +35,7 @@ public class CardService : ICardService
             CreatedById = userId
         };
 
+        ApplyCompletionState(card, column);
         ApplyLabels(card, request.Labels);
         _db.Cards.Add(card);
         await _db.SaveChangesAsync();
@@ -101,7 +103,10 @@ public class CardService : ICardService
 
     public async Task<CardDetailDto> MoveCardAsync(int userId, int cardId, MoveCardRequest request)
     {
-        var card = await _db.Cards.FindAsync(cardId) ?? throw new KeyNotFoundException("Không tìm thấy thẻ.");
+        var card = await _db.Cards
+            .Include(c => c.Column)
+            .FirstOrDefaultAsync(c => c.Id == cardId)
+            ?? throw new KeyNotFoundException("Không tìm thấy thẻ.");
         var targetColumn = await _db.BoardColumns.FindAsync(request.TargetColumnId)
             ?? throw new KeyNotFoundException("Không tìm thấy cột đích.");
 
@@ -111,10 +116,15 @@ public class CardService : ICardService
         }
 
         await BoardAccess.EnsureCanEditCardsAsync(_db, card.BoardId, userId);
+        await EnsureColumnCapacityAsync(targetColumn, card.Id);
+
+        var wasCompleted = IsCompletedByState(card);
         card.ColumnId = request.TargetColumnId;
         card.Position = request.Position;
+        ApplyCompletionState(card, targetColumn);
         card.UpdatedAt = DateTime.UtcNow;
-        AddActivity(card.BoardId, card.Id, userId, "MoveCard", $"Di chuyển thẻ {card.Title}");
+        var activity = BuildMoveActivity(card, wasCompleted, targetColumn);
+        AddActivity(card.BoardId, card.Id, userId, activity.Action, activity.Description);
         await _db.SaveChangesAsync();
 
         return (await LoadCardAsync(cardId)).ToDetailDto();
@@ -128,7 +138,10 @@ public class CardService : ICardService
         }
 
         var ids = request.Cards.Select(c => c.CardId).Distinct().ToList();
-        var cards = await _db.Cards.Where(c => ids.Contains(c.Id)).ToListAsync();
+        var cards = await _db.Cards
+            .Include(c => c.Column)
+            .Where(c => ids.Contains(c.Id))
+            .ToListAsync();
         if (cards.Count != ids.Count)
         {
             throw new KeyNotFoundException("Danh sách thẻ không hợp lệ.");
@@ -143,7 +156,6 @@ public class CardService : ICardService
         var columnIds = request.Cards.Select(c => c.ColumnId).Distinct().ToList();
         var validColumns = await _db.BoardColumns
             .Where(c => columnIds.Contains(c.Id) && c.BoardId == boardId)
-            .Select(c => c.Id)
             .ToListAsync();
         if (validColumns.Count != columnIds.Count)
         {
@@ -151,6 +163,9 @@ public class CardService : ICardService
         }
 
         await BoardAccess.EnsureCanEditCardsAsync(_db, boardId, userId);
+        await EnsureRequestedWipLimitsAsync(boardId, request, cards, validColumns);
+
+        var columnsById = validColumns.ToDictionary(column => column.Id);
         var movedCard = request.MovedCardId is int movedCardId
             ? cards.FirstOrDefault(c => c.Id == movedCardId)
             : cards.FirstOrDefault(c =>
@@ -158,16 +173,25 @@ public class CardService : ICardService
                 var item = request.Cards.FirstOrDefault(r => r.CardId == c.Id);
                 return item is not null && (item.ColumnId != c.ColumnId || item.Position != c.Position);
             });
+        var movedWasCompleted = movedCard is not null && IsCompletedByState(movedCard);
 
         foreach (var item in request.Cards)
         {
             var card = cards.First(c => c.Id == item.CardId);
+            var targetColumn = columnsById[item.ColumnId];
             card.ColumnId = item.ColumnId;
             card.Position = item.Position;
+            ApplyCompletionState(card, targetColumn);
             card.UpdatedAt = DateTime.UtcNow;
         }
 
-        AddActivity(boardId, null, userId, "ReorderCards", "Sắp xếp lại thẻ trong bảng");
+        if (movedCard is not null)
+        {
+            var targetColumn = columnsById[movedCard.ColumnId];
+            var activity = BuildMoveActivity(movedCard, movedWasCompleted, targetColumn);
+            AddActivity(boardId, movedCard.Id, userId, activity.Action, activity.Description);
+        }
+
         await AddCardMoveNotificationsAsync(boardId, userId, movedCard);
         await _db.SaveChangesAsync();
         return boardId;
@@ -238,6 +262,7 @@ public class CardService : ICardService
     {
         return await _db.Cards
             .AsNoTracking()
+            .Include(c => c.Column)
             .Include(c => c.Assignee)
             .Include(c => c.CreatedBy)
             .Include(c => c.Labels)
@@ -261,6 +286,88 @@ public class CardService : ICardService
             .Where(i => i.CardId == cardId)
             .MaxAsync(i => (int?)i.Position);
         return (max ?? 0) + 1;
+    }
+
+    private async Task EnsureColumnCapacityAsync(BoardColumn column, int? movingCardId = null)
+    {
+        if (ColumnProgressHelper.IsCompletedColumn(column) || column.WipLimit is null || column.WipLimit <= 0)
+        {
+            return;
+        }
+
+        var activeCount = await _db.Cards.CountAsync(c =>
+            c.ColumnId == column.Id
+            && !c.IsArchived
+            && (!movingCardId.HasValue || c.Id != movingCardId.Value));
+
+        if (activeCount >= column.WipLimit.Value)
+        {
+            throw new InvalidOperationException(BuildWipLimitMessage(column));
+        }
+    }
+
+    private async Task EnsureRequestedWipLimitsAsync(int boardId, ReorderCardsRequest request, List<Card> cards, List<BoardColumn> columns)
+    {
+        var cardIds = cards.Select(c => c.Id).ToHashSet();
+        var cardsById = cards.ToDictionary(c => c.Id);
+        var requestedCounts = request.Cards
+            .Where(item => cardsById.TryGetValue(item.CardId, out var card) && !card.IsArchived)
+            .GroupBy(item => item.ColumnId)
+            .ToDictionary(group => group.Key, group => group.Count());
+        var columnIds = columns.Select(c => c.Id).ToList();
+        var existingOutsideRequest = await _db.Cards
+            .Where(c => c.BoardId == boardId && columnIds.Contains(c.ColumnId) && !cardIds.Contains(c.Id) && !c.IsArchived)
+            .GroupBy(c => c.ColumnId)
+            .Select(group => new { ColumnId = group.Key, Count = group.Count() })
+            .ToListAsync();
+        var outsideCounts = existingOutsideRequest.ToDictionary(item => item.ColumnId, item => item.Count);
+
+        foreach (var column in columns.Where(c => !ColumnProgressHelper.IsCompletedColumn(c) && c.WipLimit is > 0))
+        {
+            var finalCount = requestedCounts.GetValueOrDefault(column.Id) + outsideCounts.GetValueOrDefault(column.Id);
+            if (finalCount > column.WipLimit!.Value)
+            {
+                throw new InvalidOperationException(BuildWipLimitMessage(column));
+            }
+        }
+    }
+
+    private static void ApplyCompletionState(Card card, BoardColumn targetColumn)
+    {
+        if (ColumnProgressHelper.IsCompletedColumn(targetColumn))
+        {
+            card.CompletedAt ??= DateTime.UtcNow;
+            return;
+        }
+
+        card.CompletedAt = null;
+    }
+
+    private static bool IsCompletedByState(Card card)
+    {
+        return card.CompletedAt.HasValue
+            || (card.Column is not null && ColumnProgressHelper.IsCompletedColumn(card.Column));
+    }
+
+    private static (string Action, string Description) BuildMoveActivity(Card card, bool wasCompleted, BoardColumn targetColumn)
+    {
+        var isCompleted = ColumnProgressHelper.IsCompletedColumn(targetColumn);
+        if (isCompleted && !wasCompleted)
+        {
+            return ("CompleteCard", $"Hoan thanh the {card.Title}");
+        }
+
+        if (!isCompleted && wasCompleted)
+        {
+            return ("ReopenCard", $"Mo lai the {card.Title}");
+        }
+
+        return ("MoveCard", $"Di chuyen the {card.Title}");
+    }
+
+    private static string BuildWipLimitMessage(BoardColumn column)
+    {
+        return $"Cot \"{column.Name}\" da dat WIP limit {column.WipLimit}. Hay hoan thanh hoac chuyen bot viec truoc.";
     }
 
     private static void ApplyLabels(Card card, List<UpsertLabelRequest>? labels)

@@ -1,4 +1,4 @@
-import { Check, GripVertical, Inbox, Plus, Trash2, X } from 'lucide-react'
+import { Check, CheckCircle2, GripVertical, Inbox, Plus, Trash2, X } from 'lucide-react'
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { useState } from 'react'
@@ -12,6 +12,7 @@ function KanbanColumn({ column, onCreateCard, onOpenCard, onDeleteColumn, onUpda
   const cardCount = column.cards?.length || 0
   const hasWipLimit = Number(column.wipLimit) > 0
   const isOverLimit = hasWipLimit && cardCount > Number(column.wipLimit)
+  const isDoneColumn = Boolean(column.isDone)
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: `column-${column.id}`,
     data: { type: 'column', column },
@@ -59,6 +60,7 @@ function KanbanColumn({ column, onCreateCard, onOpenCard, onDeleteColumn, onUpda
         <div className="column-title-row">
           <input
             value={title}
+            disabled={isDoneColumn}
             onChange={(e) => setTitle(e.target.value)}
             onBlur={submitTitle}
             onKeyDown={(event) => {
@@ -69,17 +71,24 @@ function KanbanColumn({ column, onCreateCard, onOpenCard, onDeleteColumn, onUpda
               }
             }}
           />
-          <button className="icon-button subtle" type="button" title="Lưu tên cột" onClick={submitTitle}>
+          <button className="icon-button subtle" type="button" title={isDoneColumn ? 'Cột Done mặc định không đổi tên' : 'Lưu tên cột'} disabled={isDoneColumn} onClick={submitTitle}>
             <Check size={15} />
           </button>
         </div>
+        {isDoneColumn ? (
+          <button className="column-done-toggle is-active" type="button" title="Cột hoàn thành mặc định" disabled>
+            <CheckCircle2 size={15} />
+          </button>
+        ) : (
+          <span className="column-done-slot" aria-hidden="true" />
+        )}
         <div className={`column-count ${isOverLimit ? 'is-over-limit' : ''}`} title={hasWipLimit ? `WIP ${cardCount}/${column.wipLimit}` : `${cardCount} thẻ`}>
           {hasWipLimit ? `${cardCount}/${column.wipLimit}` : cardCount}
         </div>
         <button className="icon-button subtle column-add-button" type="button" title="Thêm thẻ" onClick={() => setIsComposing((value) => !value)}>
           {isComposing ? <X size={15} /> : <Plus size={15} />}
         </button>
-        <button className="icon-button subtle danger" type="button" title="Xóa cột" onClick={() => onDeleteColumn(column.id)}>
+        <button className="icon-button subtle danger" type="button" title={isDoneColumn ? 'Không thể xóa cột Done mặc định' : 'Xóa cột'} disabled={isDoneColumn} onClick={() => onDeleteColumn(column.id)}>
           <Trash2 size={15} />
         </button>
       </header>

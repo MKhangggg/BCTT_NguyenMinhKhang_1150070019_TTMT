@@ -4,6 +4,8 @@ namespace Kanban.API.DTOs.Member;
 
 public record BoardMemberDto(int Id, int BoardId, int UserId, string FullName, string UserName, string Email, string? AvatarUrl, BoardRole Role, DateTime JoinedAt);
 
+public record MemberCandidateDto(int UserId, string FullName, string UserName, string Email, string? AvatarUrl, string? Department, string? JobTitle);
+
 public record AddMemberRequest(string Email, BoardRole Role);
 
 public record UpdateMemberRoleRequest(BoardRole Role);

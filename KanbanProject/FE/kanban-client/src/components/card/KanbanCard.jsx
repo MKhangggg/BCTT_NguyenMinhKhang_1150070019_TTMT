@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarClock, GripVertical, Tag, UserX, Zap } from 'lucide-react'
+import { AlertTriangle, CalendarClock, CheckCircle2, GripVertical, Tag, UserX, Zap } from 'lucide-react'
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import Avatar from '../common/Avatar.jsx'
@@ -21,8 +21,9 @@ function KanbanCard({ card, onOpen }) {
   today.setHours(0, 0, 0, 0)
   const dueDay = dueDate ? new Date(dueDate) : null
   dueDay?.setHours(0, 0, 0, 0)
-  const isOverdue = dueDay && dueDay < today && !card.isArchived
-  const isDueToday = dueDay && dueDay.getTime() === today.getTime() && !card.isArchived
+  const isCompleted = Boolean(card.isCompleted)
+  const isOverdue = Boolean(card.isOverdue ?? (dueDay && dueDay < today && !card.isArchived && !isCompleted))
+  const isDueToday = dueDay && dueDay.getTime() === today.getTime() && !card.isArchived && !isCompleted
   const {
     attributes,
     listeners,
@@ -64,6 +65,7 @@ function KanbanCard({ card, onOpen }) {
         </div>
         <h3>{card.title}</h3>
         <div className="card-badges">
+          {isCompleted && <span className="card-badge success-badge"><CheckCircle2 size={12} /> Done</span>}
           {isOverdue && <span className="card-badge danger-badge"><AlertTriangle size={12} /> Quá hạn</span>}
           {isDueToday && <span className="card-badge warning-badge"><CalendarClock size={12} /> Hạn hôm nay</span>}
           {card.priority === 'High' && <span className="card-badge hot-badge"><Zap size={12} /> Ưu tiên cao</span>}

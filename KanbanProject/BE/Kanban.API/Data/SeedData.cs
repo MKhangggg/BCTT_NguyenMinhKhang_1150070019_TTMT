@@ -49,9 +49,9 @@ public static class SeedData
             Role = BoardRole.Owner
         });
 
-        var todo = new BoardColumn { Board = board, Name = "Cần làm", Position = 1, WipLimit = 5 };
-        var inProgress = new BoardColumn { Board = board, Name = "Đang làm", Position = 2, WipLimit = 3 };
-        var done = new BoardColumn { Board = board, Name = "Hoàn thành", Position = 3 };
+        var todo = new BoardColumn { Board = board, Name = "Cần làm", Position = 1, WipLimit = 5, IsDone = false };
+        var inProgress = new BoardColumn { Board = board, Name = "Đang làm", Position = 2, WipLimit = 3, IsDone = false };
+        var done = new BoardColumn { Board = board, Name = "Done", Position = 3, IsDone = true };
 
         var card1 = new Card
         {
@@ -90,6 +90,7 @@ public static class SeedData
             Title = "Khởi tạo database Code First",
             Description = "Tạo model, DbContext và migration đầu tiên.",
             Priority = CardPriority.Low,
+            CompletedAt = DateTime.UtcNow,
             Position = 1,
             CreatedBy = admin,
             Assignee = admin

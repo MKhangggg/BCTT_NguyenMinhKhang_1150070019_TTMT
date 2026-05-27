@@ -26,37 +26,31 @@ public class ReportService : IReportService
             .ToListAsync();
 
         var cardsByColumn = cards
-            .GroupBy(c => new { c.ColumnId, c.Column.Name })
-            .Select(g => new ColumnCountDto(g.Key.ColumnId, g.Key.Name, g.Count()))
-            .OrderBy(c => c.ColumnName)
+            .GroupBy(c => new
+            {
+                c.ColumnId,
+                c.Column.Name,
+                c.Column.Position,
+                IsDone = ColumnProgressHelper.IsCompletedColumn(c.Column)
+            })
+            .Select(g => new ColumnCountDto(g.Key.ColumnId, g.Key.Name, g.Count(), g.Key.IsDone))
+            .OrderBy(c => cards.First(card => card.ColumnId == c.ColumnId).Column.Position)
             .ToList();
 
         var cardsByPriority = Enum.GetValues<CardPriority>()
             .Select(priority => new PriorityCountDto(priority, cards.Count(c => c.Priority == priority)))
             .ToList();
+        var today = DateTime.UtcNow.Date;
+        var completedCards = cards.Count(c => ColumnProgressHelper.IsCompletedColumn(c.Column));
+        var overdueCards = cards.Count(c => c.DueDate.HasValue && c.DueDate.Value.Date < today && !ColumnProgressHelper.IsCompletedColumn(c.Column));
 
         return new BoardReportDto(
             boardId,
             cards.Count,
-            cards.Count(c => IsCompletedColumn(c.Column.Name)),
-            cards.Count(c => IsInProgressColumn(c.Column.Name)),
-            cards.Count(c => c.DueDate.HasValue && c.DueDate.Value.Date < DateTime.UtcNow.Date && !IsCompletedColumn(c.Column.Name)),
+            completedCards,
+            cards.Count(c => !ColumnProgressHelper.IsCompletedColumn(c.Column)),
+            overdueCards,
             cardsByColumn,
             cardsByPriority);
-    }
-
-    private static bool IsCompletedColumn(string columnName)
-    {
-        return columnName.Contains("Done", StringComparison.OrdinalIgnoreCase)
-            || columnName.Contains("Hoàn thành", StringComparison.OrdinalIgnoreCase)
-            || columnName.Contains("Xong", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsInProgressColumn(string columnName)
-    {
-        return columnName.Contains("Progress", StringComparison.OrdinalIgnoreCase)
-            || columnName.Contains("Doing", StringComparison.OrdinalIgnoreCase)
-            || columnName.Contains("Đang làm", StringComparison.OrdinalIgnoreCase)
-            || columnName.Contains("Đang thực hiện", StringComparison.OrdinalIgnoreCase);
     }
 }

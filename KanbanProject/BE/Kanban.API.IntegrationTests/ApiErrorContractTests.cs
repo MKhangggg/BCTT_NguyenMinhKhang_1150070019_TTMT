@@ -2,7 +2,10 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Kanban.API.Data;
 using Kanban.API.IntegrationTests.Infrastructure;
+using Kanban.API.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Kanban.API.IntegrationTests;
 
@@ -37,9 +40,9 @@ public class ApiErrorContractTests
         using var factory = new KanbanApiFactory();
         using var client = factory.CreateClient();
 
-        var ownerToken = await RegisterAndGetTokenAsync(client, "owner");
+        var owner = await RegisterAndGetAuthAsync(client, "owner");
         var outsiderToken = await RegisterAndGetTokenAsync(client, "outsider");
-        var boardId = await CreatePrivateBoardAsync(client, ownerToken);
+        var boardId = await CreatePrivateBoardInDbAsync(factory, owner.UserId);
 
         var response = await SendAuthorizedAsync(client, HttpMethod.Get, $"/api/boards/{boardId}", outsiderToken);
 
@@ -58,23 +61,13 @@ public class ApiErrorContractTests
         await AssertApiErrorAsync(response, HttpStatusCode.NotFound, "not_found");
     }
 
-    private static async Task<int> CreatePrivateBoardAsync(HttpClient client, string token)
+    private static async Task<string> RegisterAndGetTokenAsync(HttpClient client, string alias)
     {
-        var payload = new
-        {
-            name = "Integration Test Board",
-            description = "Board for permission tests",
-            isPublic = false
-        };
-
-        var response = await SendAuthorizedAsync(client, HttpMethod.Post, "/api/boards", token, payload);
-        response.EnsureSuccessStatusCode();
-
-        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        return json.RootElement.GetProperty("id").GetInt32();
+        var auth = await RegisterAndGetAuthAsync(client, alias);
+        return auth.Token;
     }
 
-    private static async Task<string> RegisterAndGetTokenAsync(HttpClient client, string alias)
+    private static async Task<TestAuth> RegisterAndGetAuthAsync(HttpClient client, string alias)
     {
         var suffix = Guid.NewGuid().ToString("N")[..8];
         var payload = new
@@ -94,8 +87,28 @@ public class ApiErrorContractTests
 
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         var token = json.RootElement.GetProperty("token").GetString();
-        return token ?? throw new InvalidOperationException("Token was not returned by /api/auth/register.");
+        var userId = json.RootElement.GetProperty("user").GetProperty("id").GetInt32();
+        return new TestAuth(token ?? throw new InvalidOperationException("Token was not returned by /api/auth/register."), userId);
     }
+
+    private static async Task<int> CreatePrivateBoardInDbAsync(KanbanApiFactory factory, int ownerId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var board = new Board
+        {
+            Name = "Integration Test Board",
+            Description = "Board for permission tests",
+            OwnerId = ownerId,
+            IsPublic = false
+        };
+        board.Members.Add(new BoardMember { UserId = ownerId, Role = BoardRole.Owner });
+        db.Boards.Add(board);
+        await db.SaveChangesAsync();
+        return board.Id;
+    }
+
+    private sealed record TestAuth(string Token, int UserId);
 
     private static async Task<HttpResponseMessage> SendAuthorizedAsync(
         HttpClient client,

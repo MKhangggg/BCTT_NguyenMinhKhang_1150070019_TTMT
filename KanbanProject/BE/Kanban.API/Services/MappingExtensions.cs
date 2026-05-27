@@ -1,5 +1,6 @@
 using Kanban.API.DTOs.Board;
 using Kanban.API.DTOs.Card;
+using Kanban.API.DTOs.Chat;
 using Kanban.API.DTOs.Column;
 using Kanban.API.DTOs.Comment;
 using Kanban.API.DTOs.Member;
@@ -10,6 +11,8 @@ namespace Kanban.API.Services;
 
 public static class MappingExtensions
 {
+    private sealed record BoardProgress(int TotalCards, int CompletedCards, int RemainingCards, int OverdueCards, int ProgressPercent, string ProgressStatus);
+
     public static BoardMemberDto ToDto(this BoardMember member)
     {
         return new BoardMemberDto(
@@ -36,6 +39,8 @@ public static class MappingExtensions
 
     public static CardDto ToDto(this Card card)
     {
+        var isCompleted = IsCompletedCard(card);
+
         return new CardDto(
             card.Id,
             card.BoardId,
@@ -47,6 +52,9 @@ public static class MappingExtensions
             card.Assignee?.AvatarUrl,
             card.Priority,
             card.DueDate,
+            isCompleted,
+            IsOverdueCard(card, isCompleted),
+            card.CompletedAt,
             card.Position,
             card.IsArchived,
             card.Labels.OrderBy(l => l.Id).Select(l => l.ToDto()).ToList());
@@ -60,6 +68,7 @@ public static class MappingExtensions
             column.Name,
             column.Position,
             column.WipLimit,
+            ColumnProgressHelper.IsCompletedColumn(column),
             column.Cards
                 .Where(c => !c.IsArchived)
                 .OrderBy(c => c.Position)
@@ -69,6 +78,8 @@ public static class MappingExtensions
 
     public static CardDetailDto ToDetailDto(this Card card)
     {
+        var isCompleted = IsCompletedCard(card);
+
         return new CardDetailDto(
             card.Id,
             card.BoardId,
@@ -80,6 +91,9 @@ public static class MappingExtensions
             card.Assignee?.AvatarUrl,
             card.Priority,
             card.DueDate,
+            isCompleted,
+            IsOverdueCard(card, isCompleted),
+            card.CompletedAt,
             card.Position,
             card.IsArchived,
             card.CreatedById,
@@ -93,6 +107,8 @@ public static class MappingExtensions
 
     public static BoardSummaryDto ToSummaryDto(this Board board)
     {
+        var progress = CalculateProgress(board);
+
         return new BoardSummaryDto(
             board.Id,
             board.ProjectCode,
@@ -107,6 +123,12 @@ public static class MappingExtensions
             board.IsPublic,
             board.Members.Count,
             board.Documents.Count,
+            progress.TotalCards,
+            progress.CompletedCards,
+            progress.RemainingCards,
+            progress.OverdueCards,
+            progress.ProgressPercent,
+            progress.ProgressStatus,
             board.CreatedAt,
             board.UpdatedAt);
     }
@@ -124,6 +146,8 @@ public static class MappingExtensions
 
     public static BoardDetailDto ToDetailDto(this Board board)
     {
+        var progress = CalculateProgress(board);
+
         return new BoardDetailDto(
             board.Id,
             board.ProjectCode,
@@ -136,6 +160,12 @@ public static class MappingExtensions
             board.OrganizationUnit?.Name,
             board.OrganizationUnit?.Type.ToString(),
             board.IsPublic,
+            progress.TotalCards,
+            progress.CompletedCards,
+            progress.RemainingCards,
+            progress.OverdueCards,
+            progress.ProgressPercent,
+            progress.ProgressStatus,
             board.CreatedAt,
             board.UpdatedAt,
             board.Documents.OrderByDescending(d => d.CreatedAt).Select(d => d.ToDto()).ToList(),
@@ -148,12 +178,80 @@ public static class MappingExtensions
         return new CommentDto(
             comment.Id,
             comment.CardId,
+            comment.Card?.BoardId ?? 0,
             comment.UserId,
             comment.User.UserName,
             comment.User.AvatarUrl,
             comment.Content,
             comment.CreatedAt,
             comment.UpdatedAt);
+    }
+
+    public static BoardChatMessageDto ToDto(this BoardChatMessage message)
+    {
+        return new BoardChatMessageDto(
+            message.Id,
+            message.BoardId,
+            message.UserId,
+            message.User.UserName,
+            message.User.AvatarUrl,
+            message.Content,
+            message.CreatedAt,
+            message.EditedAt);
+    }
+
+    private static BoardProgress CalculateProgress(Board board)
+    {
+        var today = DateTime.UtcNow.Date;
+        var cards = board.Columns
+            .SelectMany(column => (column.Cards ?? new List<Card>()).Select(card => new { Card = card, Column = column }))
+            .Where(item => !item.Card.IsArchived)
+            .ToList();
+        var totalCards = cards.Count;
+        var completedCards = cards.Count(item => ColumnProgressHelper.IsCompletedColumn(item.Column));
+        var overdueCards = cards.Count(item => item.Card.DueDate.HasValue && item.Card.DueDate.Value.Date < today && !ColumnProgressHelper.IsCompletedColumn(item.Column));
+        var remainingCards = Math.Max(0, totalCards - completedCards);
+        var progressPercent = totalCards == 0 ? 0 : (int)Math.Round(completedCards * 100.0 / totalCards, MidpointRounding.AwayFromZero);
+        var progressStatus = totalCards == 0
+            ? "NotStarted"
+            : completedCards == totalCards
+            ? "Completed"
+            : overdueCards > 0
+                ? "BehindSchedule"
+                : "InProgress";
+
+        return new BoardProgress(totalCards, completedCards, remainingCards, overdueCards, progressPercent, progressStatus);
+    }
+
+    private static bool IsCompletedCard(Card card)
+    {
+        return card.Column is not null
+            ? ColumnProgressHelper.IsCompletedColumn(card.Column)
+            : card.CompletedAt.HasValue;
+    }
+
+    private static bool IsOverdueCard(Card card, bool isCompleted)
+    {
+        return card.DueDate.HasValue
+            && card.DueDate.Value.Date < DateTime.UtcNow.Date
+            && !isCompleted
+            && !card.IsArchived;
+    }
+
+    public static DirectMessageDto ToDto(this DirectMessage message, int currentUserId)
+    {
+        return new DirectMessageDto(
+            message.Id,
+            message.SenderId,
+            message.RecipientId,
+            message.Sender.FullName,
+            message.Sender.AvatarUrl,
+            message.Recipient.FullName,
+            message.Recipient.AvatarUrl,
+            message.Content,
+            message.CreatedAt,
+            message.ReadAt,
+            message.SenderId == currentUserId);
     }
 
     public static ActivityLogDto ToDto(this ActivityLog activity)

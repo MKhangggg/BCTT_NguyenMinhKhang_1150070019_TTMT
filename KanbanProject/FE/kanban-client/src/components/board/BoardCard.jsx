@@ -1,9 +1,18 @@
-import { ArrowRight, Calendar, Clock3, FileText, Globe2, KanbanSquare, Lock, Users } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Calendar, CheckCircle2, Clock3, FileText, Globe2, KanbanSquare, Lock, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
+
+const progressStatusLabels = {
+  Completed: 'Hoàn thành',
+  BehindSchedule: 'Chậm tiến độ',
+  InProgress: 'Đang làm',
+  NotStarted: 'Chưa bắt đầu',
+}
 
 function BoardCard({ board, index = 0 }) {
   const memberCount = Number(board.memberCount || 0)
-  const progress = `${Math.min(100, Math.max(18, memberCount * 18))}%`
+  const progressPercent = Number(board.progressPercent || 0)
+  const progress = `${Math.min(100, Math.max(0, progressPercent))}%`
+  const isBehindSchedule = board.progressStatus === 'BehindSchedule'
   const createdAt = board.createdAt ? new Date(board.createdAt) : null
 
   return (
@@ -25,9 +34,14 @@ function BoardCard({ board, index = 0 }) {
         <span />
       </div>
       <div className="board-card-signals">
+        <span><CheckCircle2 size={14} /> {progressPercent}% hoàn thành</span>
+        <span>{board.completedCards || 0}/{board.totalCards || 0} thẻ xong</span>
+        <span>{isBehindSchedule ? <AlertTriangle size={14} /> : <Clock3 size={14} />} {progressStatusLabels[board.progressStatus] || 'Chưa rõ'}</span>
+      </div>
+      <div className="board-card-signals">
         <span><Users size={14} /> {memberCount || 1} người</span>
         <span><FileText size={14} /> {board.documentCount || 0} tài liệu</span>
-        <span><Clock3 size={14} /> Sẵn sàng</span>
+        <span><AlertTriangle size={14} /> {board.overdueCards || 0} quá hạn</span>
       </div>
       <div className="board-meta">
         <span><Calendar size={15} /> {createdAt?.toLocaleDateString() || 'Chưa rõ ngày'}</span>

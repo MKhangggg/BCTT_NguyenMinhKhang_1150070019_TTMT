@@ -96,7 +96,7 @@ function CalendarPage() {
       const cardsWithDueDate = boardDetails.flatMap((board) =>
         (board.columns || []).flatMap((column) =>
           (column.cards || [])
-            .filter((card) => card.dueDate && !card.isArchived)
+            .filter((card) => card.dueDate && !card.isArchived && !card.isCompleted)
             .map((card) => ({
               id: card.id,
               boardId: board.id,
@@ -107,6 +107,7 @@ function CalendarPage() {
               assigneeName: card.assigneeName || '',
               priority: card.priority,
               dueDate: card.dueDate,
+              isCompleted: Boolean(card.isCompleted),
               dueDateKey: toDateKey(card.dueDate),
               dueTimestamp: new Date(card.dueDate).getTime(),
               labels: card.labels || [],

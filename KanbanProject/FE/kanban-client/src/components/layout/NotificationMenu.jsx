@@ -5,6 +5,10 @@ import { useBoard } from '../../hooks/useBoard'
 import { notificationService } from '../../services/notificationService'
 
 const getNotificationTarget = (notification) => {
+  if (notification?.type === 'DirectMessage') {
+    return notification.chatUserId ? `/chat?userId=${notification.chatUserId}` : '/chat'
+  }
+
   if (!notification?.boardId) return null
   const cardQuery = notification.cardId ? `?cardId=${notification.cardId}` : ''
   return `/boards/${notification.boardId}${cardQuery}`

@@ -24,6 +24,7 @@ public class BoardService : IBoardService
             .Include(b => b.OrganizationUnit)
             .Include(b => b.Members)
             .Include(b => b.Documents)
+            .Include(b => b.Columns).ThenInclude(c => c.Cards)
             .AsQueryable();
 
         if (!isSystemAdmin)
@@ -83,9 +84,9 @@ public class BoardService : IBoardService
             }
         }
 
-        board.Columns.Add(new BoardColumn { Name = "Cần làm", Position = 1 });
-        board.Columns.Add(new BoardColumn { Name = "Đang làm", Position = 2 });
-        board.Columns.Add(new BoardColumn { Name = "Hoàn thành", Position = 3 });
+        board.Columns.Add(new BoardColumn { Name = "Cần làm", Position = 1, IsDone = false });
+        board.Columns.Add(new BoardColumn { Name = "Đang làm", Position = 2, IsDone = false });
+        board.Columns.Add(new BoardColumn { Name = "Done", Position = 3, IsDone = true });
 
         _db.Boards.Add(board);
         await _db.SaveChangesAsync();

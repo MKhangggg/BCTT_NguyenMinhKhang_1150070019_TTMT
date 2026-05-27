@@ -29,6 +29,43 @@ public class MemberService : IMemberService
         return members.Select(m => m.ToDto()).ToList();
     }
 
+    public async Task<List<MemberCandidateDto>> GetMemberCandidatesAsync(int userId, int boardId, string? search)
+    {
+        await BoardAccess.EnsureCanManageBoardAsync(_db, boardId, userId);
+        var existingUserIds = await _db.BoardMembers
+            .Where(member => member.BoardId == boardId)
+            .Select(member => member.UserId)
+            .ToListAsync();
+        var keyword = search?.Trim().ToLowerInvariant();
+
+        var query = _db.Users
+            .AsNoTracking()
+            .Where(user => user.IsActive && !existingUserIds.Contains(user.Id));
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            query = query.Where(user =>
+                user.FullName.ToLower().Contains(keyword)
+                || user.UserName.ToLower().Contains(keyword)
+                || user.Email.ToLower().Contains(keyword)
+                || (user.Department != null && user.Department.ToLower().Contains(keyword))
+                || (user.JobTitle != null && user.JobTitle.ToLower().Contains(keyword)));
+        }
+
+        return await query
+            .OrderBy(user => user.FullName)
+            .Take(200)
+            .Select(user => new MemberCandidateDto(
+                user.Id,
+                user.FullName,
+                user.UserName,
+                user.Email,
+                user.AvatarUrl,
+                user.Department,
+                user.JobTitle))
+            .ToListAsync();
+    }
+
     public async Task<BoardMemberDto> AddMemberAsync(int userId, int boardId, AddMemberRequest request)
     {
         await BoardAccess.EnsureCanManageBoardAsync(_db, boardId, userId);

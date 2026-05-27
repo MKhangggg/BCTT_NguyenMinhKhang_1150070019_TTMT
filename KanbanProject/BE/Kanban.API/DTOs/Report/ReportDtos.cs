@@ -2,7 +2,7 @@ using Kanban.API.Models;
 
 namespace Kanban.API.DTOs.Report;
 
-public record ColumnCountDto(int ColumnId, string ColumnName, int Count);
+public record ColumnCountDto(int ColumnId, string ColumnName, int Count, bool IsDone);
 
 public record PriorityCountDto(CardPriority Priority, int Count);
 

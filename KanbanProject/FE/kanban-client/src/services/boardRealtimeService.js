@@ -5,7 +5,7 @@ const getHubUrl = () => {
   return apiUrl.replace(/\/api\/?$/, '/hubs/board')
 }
 
-export const createBoardRealtimeConnection = ({ boardId, onBoardChanged, onStatusChanged }) => {
+export const createBoardRealtimeConnection = ({ boardId, onBoardChanged, onBoardListChanged, onDirectMessageChanged, onStatusChanged }) => {
   const connection = new HubConnectionBuilder()
     .withUrl(getHubUrl(), {
       accessTokenFactory: () => localStorage.getItem('kanban_token') || '',
@@ -16,6 +16,11 @@ export const createBoardRealtimeConnection = ({ boardId, onBoardChanged, onStatu
     .build()
 
   const joinBoard = async () => {
+    if (!boardId) {
+      onStatusChanged?.('connected')
+      return
+    }
+
     if (connection.state === HubConnectionState.Connected) {
       await connection.invoke('JoinBoard', Number(boardId))
       onStatusChanged?.('connected')
@@ -23,9 +28,17 @@ export const createBoardRealtimeConnection = ({ boardId, onBoardChanged, onStatu
   }
 
   connection.on('BoardChanged', (event) => {
-    if (Number(event?.boardId) === Number(boardId)) {
+    if (!boardId || Number(event?.boardId) === Number(boardId)) {
       onBoardChanged?.(event)
     }
+  })
+
+  connection.on('BoardListChanged', (event) => {
+    onBoardListChanged?.(event)
+  })
+
+  connection.on('DirectMessageChanged', (event) => {
+    onDirectMessageChanged?.(event)
   })
 
   connection.onreconnecting(() => onStatusChanged?.('reconnecting'))
@@ -39,7 +52,7 @@ export const createBoardRealtimeConnection = ({ boardId, onBoardChanged, onStatu
       await joinBoard()
     },
     stop: async () => {
-      if (connection.state === HubConnectionState.Connected) {
+      if (boardId && connection.state === HubConnectionState.Connected) {
         await connection.invoke('LeaveBoard', Number(boardId)).catch(() => {})
       }
 
@@ -47,6 +60,10 @@ export const createBoardRealtimeConnection = ({ boardId, onBoardChanged, onStatu
     },
   }
 }
+
+export const createWorkspaceRealtimeConnection = ({ onBoardListChanged, onDirectMessageChanged, onStatusChanged }) => (
+  createBoardRealtimeConnection({ onBoardListChanged, onDirectMessageChanged, onStatusChanged })
+)
 
 export const formatBoardRealtimeNotification = (event) => {
   const actionLabels = {
@@ -63,14 +80,25 @@ export const formatBoardRealtimeNotification = (event) => {
     ProjectOverviewUpdated: 'Tổng quan dự án vừa được cập nhật',
     ProjectDocumentAdded: 'Tài liệu dự án vừa được thêm',
     ProjectDocumentDeleted: 'Tài liệu dự án vừa bị xóa',
+    CommentAdded: 'Bình luận mới trong thẻ',
+    CommentDeleted: 'Bình luận vừa bị xóa',
+    MemberAdded: 'Thành viên mới được thêm',
+    MembersAdded: 'Danh sách thành viên vừa cập nhật',
+    MemberRoleUpdated: 'Quyền thành viên vừa thay đổi',
+    MemberRemoved: 'Thành viên vừa bị xóa khỏi dự án',
+    ChatMessageAdded: 'Tin nhắn mới trong dự án',
+    ProjectCreated: 'Dự án mới vừa được tạo',
+    ProjectUpdated: 'Dự án vừa được cập nhật',
+    ProjectDeleted: 'Dự án vừa bị xóa',
+    ProjectMembershipChanged: 'Quyền tham gia dự án vừa thay đổi',
   }
 
   return {
     id: `live-${event?.action || 'BoardChanged'}-${Date.now()}`,
     title: actionLabels[event?.action] || 'Bảng vừa có thay đổi',
-    message: `Bảng #${event?.boardId || ''} được cập nhật theo thời gian thực.`,
+    message: `Bảng #${event?.boardId || event?.data?.boardId || ''} được cập nhật theo thời gian thực.`,
     type: event?.action || 'Realtime',
-    boardId: event?.boardId || null,
+    boardId: event?.boardId || event?.data?.boardId || null,
     cardId: event?.data?.cardId || event?.data?.MovedCardId || event?.data?.movedCardId || null,
     isRead: false,
     isRealtime: true,

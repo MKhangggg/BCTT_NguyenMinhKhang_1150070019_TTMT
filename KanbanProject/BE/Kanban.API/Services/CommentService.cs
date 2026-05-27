@@ -25,6 +25,7 @@ public class CommentService : ICommentService
         var comments = await _db.Comments
             .AsNoTracking()
             .Include(c => c.User)
+            .Include(c => c.Card)
             .Where(c => c.CardId == cardId)
             .OrderBy(c => c.CreatedAt)
             .ToListAsync();
@@ -38,11 +39,17 @@ public class CommentService : ICommentService
             ?? throw new KeyNotFoundException("Không tìm thấy thẻ.");
         await BoardAccess.EnsureCanEditCardsAsync(_db, card.BoardId, userId);
 
+        var content = request.Content.Trim();
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            throw new InvalidOperationException("Nội dung bình luận không được để trống.");
+        }
+
         var comment = new Comment
         {
             CardId = cardId,
             UserId = userId,
-            Content = request.Content.Trim()
+            Content = content
         };
 
         _db.Comments.Add(comment);
@@ -56,10 +63,14 @@ public class CommentService : ICommentService
         });
         await _db.SaveChangesAsync();
 
-        return (await _db.Comments.AsNoTracking().Include(c => c.User).FirstAsync(c => c.Id == comment.Id)).ToDto();
+        return (await _db.Comments
+            .AsNoTracking()
+            .Include(c => c.User)
+            .Include(c => c.Card)
+            .FirstAsync(c => c.Id == comment.Id)).ToDto();
     }
 
-    public async Task DeleteCommentAsync(int userId, int commentId)
+    public async Task<DeletedCommentDto> DeleteCommentAsync(int userId, int commentId)
     {
         var comment = await _db.Comments
             .Include(c => c.Card)
@@ -72,7 +83,9 @@ public class CommentService : ICommentService
             throw new ForbiddenException("Bạn chỉ được xóa bình luận của mình.");
         }
 
+        var deleted = new DeletedCommentDto(comment.Id, comment.CardId, comment.Card.BoardId);
         _db.Comments.Remove(comment);
         await _db.SaveChangesAsync();
+        return deleted;
     }
 }

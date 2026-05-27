@@ -113,6 +113,7 @@ BEGIN
         [AssigneeId] int NULL,
         [Priority] nvarchar(30) NOT NULL,
         [DueDate] datetime2 NULL,
+        [CompletedAt] datetime2 NULL,
         [Position] int NOT NULL,
         [IsArchived] bit NOT NULL,
         [CreatedById] int NOT NULL,

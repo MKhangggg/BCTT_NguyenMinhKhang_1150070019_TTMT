@@ -23,7 +23,7 @@ function ReportPanel({ report }) {
         <h3>Thẻ theo cột</h3>
         {report.cardsByColumn.map((column) => (
           <div className="report-line report-line-bar" key={column.columnId}>
-            <span>{column.columnName}</span>
+            <span>{column.columnName}{column.isDone && <em className="done-column-chip">Hoàn thành</em>}</span>
             <div><i style={{ width: `${Math.max(6, (column.count / maxColumnCount) * 100)}%` }} /></div>
             <strong>{column.count}</strong>
           </div>

@@ -10,6 +10,7 @@ public class Card
     public int? AssigneeId { get; set; }
     public CardPriority Priority { get; set; } = CardPriority.Medium;
     public DateTime? DueDate { get; set; }
+    public DateTime? CompletedAt { get; set; }
     public int Position { get; set; }
     public bool IsArchived { get; set; }
     public int CreatedById { get; set; }

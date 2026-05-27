@@ -8,11 +8,6 @@ import StatCard from '../../components/common/StatCard.jsx'
 import { boardService } from '../../services/boardService'
 import { getErrorMessage } from '../../services/api'
 
-const isDoneColumn = (column) => {
-  const name = column.name.toLowerCase()
-  return name.includes('done') || name.includes('hoàn thành') || name.includes('xong')
-}
-
 function ReportsPage() {
   const [boards, setBoard] = useState([])
   const [loading, setLoading] = useState(true)
@@ -36,13 +31,11 @@ function ReportsPage() {
   }, [])
 
   const cards = useMemo(() => boards.flatMap((board) => (board.columns || []).flatMap((column) => column.cards || [])), [boards])
-  const completedCards = useMemo(() => boards.reduce((sum, board) => {
-    const completedColumns = (board.columns || []).filter(isDoneColumn)
-    return sum + completedColumns.reduce((count, column) => count + (column.cards?.length || 0), 0)
-  }, 0), [boards])
+  const completedCards = useMemo(() => boards.reduce((sum, board) => sum + (board.completedCards || 0), 0), [boards])
+  const totalCards = useMemo(() => boards.reduce((sum, board) => sum + (board.totalCards || 0), 0), [boards])
   const totalMembers = boards.reduce((sum, board) => sum + (board.members?.length || board.memberCount || 0), 0)
-  const overdueCards = cards.filter((card) => card.dueDate && new Date(card.dueDate) < new Date() && !card.isArchived).length
-  const completionRate = cards.length ? Math.round((completedCards / cards.length) * 100) : 0
+  const overdueCards = boards.reduce((sum, board) => sum + (board.overdueCards || 0), 0)
+  const completionRate = totalCards ? Math.round((completedCards / totalCards) * 100) : 0
   const topBoards = [...boards]
     .map((board) => ({
       ...board,
@@ -54,12 +47,9 @@ function ReportsPage() {
   const riskBoards = useMemo(() => boards
     .map((board) => {
       const boardCards = (board.columns || []).flatMap((column) => column.cards || [])
-      const doneCount = (board.columns || [])
-        .filter(isDoneColumn)
-        .reduce((sum, column) => sum + (column.cards?.length || 0), 0)
-      const boardOverdue = boardCards.filter((card) => card.dueDate && new Date(card.dueDate) < new Date() && !card.isArchived).length
+      const boardOverdue = board.overdueCards || 0
       const highCount = boardCards.filter((card) => card.priority === 'High' && !card.isArchived).length
-      const progress = boardCards.length ? Math.round((doneCount / boardCards.length) * 100) : 0
+      const progress = board.progressPercent || 0
 
       return {
         id: board.id,
@@ -124,7 +114,7 @@ function ReportsPage() {
           <div className="report-radial" style={{ '--progress': `${completionRate * 3.6}deg` }}>
             <span>{completionRate}%</span>
           </div>
-          <p>{completedCards}/{cards.length} thẻ đã nằm trong các cột hoàn thành.</p>
+          <p>{completedCards}/{totalCards} thẻ đã nằm trong các cột hoàn thành.</p>
         </section>
 
         <section className="report-section report-risk-panel">
@@ -156,18 +146,15 @@ function ReportsPage() {
         <EmptyState icon={<FolderKanban size={24} />} title="Chưa có bảng để báo cáo" description="Tạo bảng đầu tiên để xem chỉ số và biểu đồ." />
       ) : (
         <div className="board-grid">
-          {boards.map((board, index) => {
-            const cardCount = (board.columns || []).reduce((sum, column) => sum + (column.cards?.length || 0), 0)
-            return (
-              <Link className="board-card report-board-card" key={board.id} to={`/boards/${board.id}/reports`} style={{ '--reveal-delay': `${index * 70}ms`, '--board-progress': `${Math.min(100, Math.max(10, cardCount * 8))}%` }}>
+          {boards.map((board, index) => (
+              <Link className="board-card report-board-card" key={board.id} to={`/boards/${board.id}/reports`} style={{ '--reveal-delay': `${index * 70}ms`, '--board-progress': `${board.progressPercent || 0}%` }}>
                 <span className="eyebrow">Báo cáo bảng</span>
                 <h3>{board.name}</h3>
                 <p>{board.description || 'Chưa có mô tả'}</p>
                 <div className="board-progress"><span /></div>
-                <div className="board-meta">{board.columns?.length || 0} cột / {cardCount} thẻ / {board.members?.length || board.memberCount || 0} thành viên</div>
+                <div className="board-meta">{board.progressPercent || 0}% hoàn thành / {board.overdueCards || 0} quá hạn / {board.members?.length || board.memberCount || 0} thành viên</div>
               </Link>
-            )
-          })}
+          ))}
         </div>
       )}
     </section>

@@ -21,6 +21,7 @@ const startOfDay = (value) => {
 }
 
 const getTaskBucket = (task) => {
+  if (task.isCompleted) return 'completed'
   if (!task.dueDate) return 'noDue'
   const due = startOfDay(task.dueDate)
   const today = startOfDay(new Date())
@@ -38,8 +39,13 @@ const quickFilters = [
   { value: 'Today', label: 'Hôm nay', icon: CalendarClock },
   { value: 'Overdue', label: 'Quá hạn', icon: AlertTriangle },
   { value: 'High', label: 'Ưu tiên cao', icon: Flame },
+  { value: 'Completed', label: 'Đã xong', icon: CheckCircle2 },
   { value: 'NoDue', label: 'Chưa có hạn', icon: Clock3 },
 ]
+
+const isCompletionColumn = (column) => {
+  return Boolean(column.isDone)
+}
 
 function MyTasksPage() {
   const [boards, setBoard] = useState([])
@@ -66,16 +72,19 @@ function MyTasksPage() {
   }, [])
 
   const tasks = useMemo(() => boards.flatMap((board) => (
-    (board.columns || []).flatMap((column) => (column.cards || []).map((card) => ({
-      ...card,
-      boardId: board.id,
-      boardName: board.name,
-      columnName: column.name,
-      bucket: getTaskBucket(card),
-      isCompleted: column.name.toLowerCase().includes('done')
-        || column.name.toLowerCase().includes('hoàn thành')
-        || column.name.toLowerCase().includes('xong'),
-    })))
+    (board.columns || []).flatMap((column) => {
+      const isCompleted = isCompletionColumn(column)
+      return (column.cards || []).map((card) => {
+        const task = {
+          ...card,
+          boardId: board.id,
+          boardName: board.name,
+          columnName: column.name,
+          isCompleted: Boolean(card.isCompleted ?? isCompleted),
+        }
+        return { ...task, bucket: getTaskBucket(task) }
+      })
+    })
   )), [boards])
 
   const filteredTasks = useMemo(() => {
@@ -90,16 +99,18 @@ function MyTasksPage() {
         || (quickFilter === 'Today' && task.bucket === 'today')
         || (quickFilter === 'Overdue' && task.bucket === 'overdue')
         || (quickFilter === 'High' && task.priority === 'High')
+        || (quickFilter === 'Completed' && task.isCompleted)
         || (quickFilter === 'NoDue' && task.bucket === 'noDue')
       return matchesText && matchesQuick
     })
   }, [query, quickFilter, tasks])
 
   const groupedTasks = useMemo(() => ({
-    overdue: filteredTasks.filter((task) => task.bucket === 'overdue'),
-    today: filteredTasks.filter((task) => task.bucket === 'today'),
-    upcoming: filteredTasks.filter((task) => ['tomorrow', 'upcoming'].includes(task.bucket)),
-    noDue: filteredTasks.filter((task) => task.bucket === 'noDue'),
+    overdue: filteredTasks.filter((task) => !task.isCompleted && task.bucket === 'overdue'),
+    today: filteredTasks.filter((task) => !task.isCompleted && task.bucket === 'today'),
+    upcoming: filteredTasks.filter((task) => !task.isCompleted && ['tomorrow', 'upcoming'].includes(task.bucket)),
+    noDue: filteredTasks.filter((task) => !task.isCompleted && task.bucket === 'noDue'),
+    completed: filteredTasks.filter((task) => task.isCompleted),
   }), [filteredTasks])
 
   const recommendedTask = useMemo(() => {
@@ -115,9 +126,10 @@ function MyTasksPage() {
       ))[0]
   }, [filteredTasks])
 
-  const overdue = tasks.filter((task) => task.bucket === 'overdue' && !task.isArchived).length
-  const today = tasks.filter((task) => task.bucket === 'today').length
-  const highPriority = tasks.filter((task) => task.priority === 'High').length
+  const activeTasks = tasks.filter((task) => !task.isCompleted && !task.isArchived)
+  const overdue = activeTasks.filter((task) => task.bucket === 'overdue').length
+  const today = activeTasks.filter((task) => task.bucket === 'today').length
+  const highPriority = activeTasks.filter((task) => task.priority === 'High').length
   const completed = tasks.filter((task) => task.isCompleted).length
   const doneRate = tasks.length ? Math.round((completed / tasks.length) * 100) : 0
 
@@ -223,6 +235,10 @@ function MyTasksPage() {
           <section className="task-section-panel muted-panel">
             <h3>Chưa có hạn <span>{groupedTasks.noDue.length}</span></h3>
             <div className="work-list">{groupedTasks.noDue.map(renderTask)}</div>
+          </section>
+          <section className="task-section-panel completed">
+            <h3>Đã xong <span>{groupedTasks.completed.length}</span></h3>
+            <div className="work-list">{groupedTasks.completed.map(renderTask)}</div>
           </section>
         </div>
       )}

@@ -7,6 +7,7 @@ public class BoardColumn
     public string Name { get; set; } = string.Empty;
     public int Position { get; set; }
     public int? WipLimit { get; set; }
+    public bool IsDone { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 

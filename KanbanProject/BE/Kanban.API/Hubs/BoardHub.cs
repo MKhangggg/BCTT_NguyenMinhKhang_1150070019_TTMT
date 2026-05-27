@@ -16,6 +16,12 @@ public class BoardHub : Hub
         _db = db;
     }
 
+    public override async Task OnConnectedAsync()
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, BoardRealtime.UserGroupName(CurrentUserId));
+        await base.OnConnectedAsync();
+    }
+
     public async Task JoinBoard(int boardId)
     {
         await BoardAccess.EnsureCanViewBoardAsync(_db, boardId, CurrentUserId);

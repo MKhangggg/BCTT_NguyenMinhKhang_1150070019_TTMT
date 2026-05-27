@@ -36,6 +36,7 @@ public class BoardsController : ApiControllerBase
     public async Task<ActionResult<BoardDetailDto>> CreateBoard(CreateBoardRequest request)
     {
         var board = await _boardService.CreateBoardAsync(CurrentUserId, request);
+        await BoardRealtime.BroadcastBoardListChangedAsync(_hubContext, "ProjectCreated", CurrentUserId, new { boardId = board.Id });
         return CreatedAtAction(nameof(GetBoard), new { id = board.Id }, board);
     }
 
@@ -44,6 +45,7 @@ public class BoardsController : ApiControllerBase
     {
         var board = await _boardService.UpdateBoardAsync(CurrentUserId, id, request);
         await BoardRealtime.BroadcastBoardChangedAsync(_hubContext, id, "ProjectOverviewUpdated", CurrentUserId, new { board });
+        await BoardRealtime.BroadcastBoardListChangedAsync(_hubContext, "ProjectUpdated", CurrentUserId, new { boardId = board.Id });
         return Ok(board);
     }
 
@@ -69,6 +71,7 @@ public class BoardsController : ApiControllerBase
     public async Task<IActionResult> DeleteBoard(int id)
     {
         await _boardService.DeleteBoardAsync(CurrentUserId, id);
+        await BoardRealtime.BroadcastBoardListChangedAsync(_hubContext, "ProjectDeleted", CurrentUserId, new { boardId = id });
         return NoContent();
     }
 }
